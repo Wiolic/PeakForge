@@ -95,7 +95,8 @@ def model_from_preset(preset: dict | str, sp: Spectrum | None = None, shift: flo
                     background=BackgroundSpec.from_json(preset.get("background")),
                     fit_range=tuple(preset["range"]) if preset.get("range") else None,
                     note=preset.get("note_en", ""),
-                    components=[Component.from_json(c) for c in preset.get("components", [])])
+                    components=[Component.from_json(c) for c in preset.get("components", [])],
+                    legend_order=list(preset.get("legend_order", [])))
     if sp is not None:
         _clip_range(m, sp, shift)
         auto_background(m, sp, shift)
@@ -122,6 +123,7 @@ def save_user_preset(model: RegionModel, pid: str, name_en: str, name_zh: str = 
     js = model.to_json()
     p = dict(id=pid, name_en=name_en, name_zh=name_zh or name_en, region=model.region,
              range=js["fit_range"], background=js["background"], components=js["components"],
+             legend_order=js.get("legend_order", []),
              note_en=model.note, note_zh=model.note)
     path = os.path.join(d, f"{pid}.json")
     with open(path, "w", encoding="utf-8") as f:

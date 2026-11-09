@@ -177,8 +177,14 @@ class RegionModel:
     weighting: str = "none"                          # 'none' | 'poisson'
     note: str = ""
     preset: str = ""
+    legend_order: list[str] = field(default_factory=list)   # component names; colours keep list order
 
     # ---------------------------------------------------------------- access
+    def legend_components(self) -> list["Component"]:
+        """Components in legend order (legend_order first, then the rest in list order)."""
+        names = [n for n in self.legend_order if n in self.names()]
+        return [self.comp(n) for n in names] + [c for c in self.components if c.name not in names]
+
     def comp(self, name: str) -> Component:
         for c in self.components:
             if c.name == name:
@@ -242,12 +248,13 @@ class RegionModel:
         return dict(region=self.region, preset=self.preset, note=self.note, weighting=self.weighting,
                     fit_range=list(self.fit_range) if self.fit_range else None,
                     background=self.background.to_json(),
-                    components=[c.to_json() for c in self.components])
+                    components=[c.to_json() for c in self.components],
+                    **({"legend_order": list(self.legend_order)} if self.legend_order else {}))
 
     @classmethod
     def from_json(cls, d) -> "RegionModel":
         return cls(region=d.get("region", ""), preset=d.get("preset", ""), note=d.get("note", ""),
-                   weighting=d.get("weighting", "none"),
+                   weighting=d.get("weighting", "none"), legend_order=list(d.get("legend_order", [])),
                    fit_range=tuple(d["fit_range"]) if d.get("fit_range") else None,
                    background=BackgroundSpec.from_json(d.get("background")),
                    components=[Component.from_json(c) for c in d.get("components", [])])

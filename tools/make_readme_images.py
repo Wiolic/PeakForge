@@ -1,4 +1,4 @@
-"""Rebuild docs/images from the synthetic demo data (never from real measurements).
+"""Rebuild the synthetic-data images in docs/images (palettes, stacked comparison).
 
     python tools/make_demo_data.py
     python tools/make_readme_images.py <scratch folder>      (needs Origin + originpro for origin_export.png)
@@ -36,14 +36,8 @@ for k in p.keys(narrow_only=True):
 
 items = [(p.sample_label(p.spectra[k].sample), p.spectra[k].region, p.get_model(k), p.result(k))
          for k in p.keys("Ir 4f") + p.keys("O 1s")[:1]]
-# 2x2 publication panel: Ir 4f in blues, O 1s in teal-greens, (a)-(d)
-panels = []
-for reg, th, style in (("Ir 4f", "glacier", "stacked"), ("O 1s", "lagoon", "inline")):
-    for smp in ("demo_fresh", "demo_aged"):
-        k_ = p.keys(reg, smp)[0]
-        panels.append(dict(model=p.get_model(k_), result=p.result(k_), theme=th, region=reg,
-                           sample=p.sample_label(smp), label_style=style))
-save_panel_figure(os.path.join(IMG, "panel_example.png"), panels, ncols=2, dpi=130)
+# panel_example.png and origin_export.png are rendered from real measurements (sample names
+# anonymised) by a private script — not regenerated here.
 save_stack_figure(os.path.join(IMG, "compare_ir4f.png"),
                   [(s, m, r) for s, reg, m, r in items if reg == "Ir 4f"], "fjord", "Ir 4f", dpi=110)
 k = p.keys("Ir 4f")[0]
@@ -59,19 +53,4 @@ for i, (fid, zh, en, ids) in enumerate(grouped()[:6]):
         ax.set_xlabel("")
 fig.savefig(os.path.join(IMG, "palettes.png"), dpi=60)
 
-try:
-    out = os.path.join(work, "origin_png")
-    export_origin(items, out, png=True)
-    from PIL import Image
-    pngs = [os.path.join(out, f"{s}_{reg.replace(' ', '')}_origin.png") for s, reg, _m, _r in items]
-    ims = [Image.open(f) for f in pngs]
-    ims = [i.resize((i.width * 2 // 5, i.height * 2 // 5)) for i in ims]
-    c = Image.new("RGB", (sum(i.width for i in ims), max(i.height for i in ims)), "white")
-    x = 0
-    for i in ims:
-        c.paste(i, (x, 0))
-        x += i.width
-    c.save(os.path.join(IMG, "origin_export.png"))
-except Exception as e:      # noqa: BLE001
-    print("Origin preview skipped:", e)
 print("project:", p.path)

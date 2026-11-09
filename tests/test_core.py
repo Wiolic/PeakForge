@@ -126,3 +126,24 @@ def test_spe_equals_vms():
             assert np.allclose(s.cps, t.cps, rtol=1e-5)
         pairs += 1
     assert pairs > 0
+
+
+def test_ir4f_preset_follows_shifted_spectrum():
+    """Ir⁰ found at 61.5 eV after charge correction (real IrTaOx data): the preset must follow without
+    pinning Ir⁰ / oxide positions at their bounds (oxides are placed by their shift from Ir⁰)."""
+    from peakforge import presets
+    from peakforge.spectrum import Spectrum
+    rng = np.random.default_rng(3)
+    x = np.arange(55, 75, 0.1)
+    y = np.zeros_like(x)
+    for shape, c, w, a, kw in (("ds", 61.5, 0.55, 20000, dict(alpha=0.12, gamma=0.35)),
+                               ("pvoigt", 62.2, 1.2, 15000, dict(eta=0.3)),
+                               ("pvoigt", 63.4, 1.2, 3000, dict(eta=0.3))):
+        y += a * lineshapes.profile(shape, x, c, w, **kw) + 0.75 * a * lineshapes.profile(shape, x, c + 2.98, w, **kw)
+    y = rng.poisson(y + 2000 + 1500 * np.cumsum(y) / np.sum(y)).astype(float)
+    sp = Spectrum(region="Ir 4f", be=x, cps=y)
+    m = presets.model_from_preset("ir4f_metal_oxide", sp)
+    r = fit(m, prepare(sp.be, sp.cps, m), n_starts=4)
+    assert not [h for h in r.bound_hits if h.startswith(("Ir0.center", "Ir3.shift", "Ir4.shift"))], r.bound_hits
+    assert abs(r.values["Ir0"]["center"] - 61.5) < 0.15
+    assert [c.name for c in m.legend_components()][:3] == ["Ir4", "Ir3", "Ir0"]

@@ -1,6 +1,6 @@
 {
- "name_en": "Ir 4f – Ir⁰ / Ir⁴⁺ / Ir³⁺ + satellite",
- "name_zh": "Ir 4f 金属/氧化态（Ir⁰/Ir⁴⁺/Ir³⁺+卫星峰）",
+ "name_en": "Ir 4f – Ir⁰ / Ir³⁺ (Ir-OH) / Ir⁴⁺ + oxide satellite",
+ "name_zh": "Ir 4f 金属/氧化态（Ir⁰ / Ir³⁺·Ir-OH / Ir⁴⁺ + 氧化态卫星峰）",
  "region": "Ir 4f",
  "range": [
   55.0,
@@ -9,8 +9,8 @@
  "background": {
   "kind": "shirley"
  },
- "note_en": "Ir⁰ asymmetric DS; Ir⁴⁺ and Ir³⁺ share FWHM; 4f7/2–4f5/2 split 2.98 eV, area 4:3; satellite excluded from state fractions. Check component significance in Diagnostics before reporting Ir⁴⁺.",
- "note_zh": "Ir⁰ 用不对称 DS 线形；Ir⁴⁺ 与 Ir³⁺ 共用 FWHM；4f7/2–4f5/2 间距 2.98 eV、面积比 4:3；卫星峰不计入价态占比。报告 Ir⁴⁺ 前先在诊断里看组分显著性。",
+ "note_en": "Convention: lower-shift oxide = Ir³⁺ / Ir-OH (Ir⁰ +0.5–1.5 eV), higher-shift oxide = Ir⁴⁺ (Ir⁰ +1.2–2.4 eV), satellite +4.5–7.5 eV. The opposite assignment also exists in the literature (IrO₂ Ir⁴⁺ ≈ 61.8 eV) — rename labels in the component table if needed. Ir⁰ asymmetric DS (tail to higher BE); oxides share FWHM and η; split 2.98 eV, area 4:3; satellite excluded from fractions. For aged samples batch-apply from the fresh one and fix the Ir⁰ position and line shape.",
+ "note_zh": "标注约定：低位移氧化态 = Ir³⁺ / Ir-OH（Ir⁰ +0.5–1.5 eV），高位移氧化态 = Ir⁴⁺（Ir⁰ +1.2–2.4 eV），卫星峰 +4.5–7.5 eV。文献中也有相反标注（IrO₂ 的 Ir⁴⁺ 约 61.8 eV），需要时在组分表里改图例名。Ir⁰ 用不对称 DS（拖尾朝高结合能）；两个氧化态共用 FWHM 与 η；4f 间距 2.98 eV、面积比 4:3；卫星峰不计入占比。反应后样品建议从反应前样品批量应用，并固定 Ir⁰ 的峰位与线形。",
  "components": [
   {
    "name": "Ir0",
@@ -24,8 +24,8 @@
    "params": {
     "center": {
      "value": 60.9,
-     "min": 60.5,
-     "max": 61.3
+     "min": 60.4,
+     "max": 61.8
     },
     "fwhm": {
      "value": 0.5,
@@ -57,8 +57,8 @@
    }
   },
   {
-   "name": "Ir4",
-   "label": "Ir⁴⁺",
+   "name": "Ir3",
+   "label": "Ir³⁺ / Ir-OH",
    "shape": "pvoigt",
    "doublet": true,
    "sub_labels": [
@@ -66,13 +66,17 @@
     "4f5/2"
    ],
    "params": {
+    "shift": {
+     "value": 0.9,
+     "min": 0.5,
+     "max": 1.5
+    },
     "center": {
      "value": 61.8,
-     "min": 61.4,
-     "max": 62.3
+     "expr": "Ir0.center + Ir3.shift"
     },
     "fwhm": {
-     "value": 1.2,
+     "value": 1.3,
      "min": 0.8,
      "max": 2.0
     },
@@ -96,8 +100,8 @@
    }
   },
   {
-   "name": "Ir3",
-   "label": "Ir³⁺/Ir–OH",
+   "name": "Ir4",
+   "label": "Ir⁴⁺",
    "shape": "pvoigt",
    "doublet": true,
    "sub_labels": [
@@ -105,21 +109,25 @@
     "4f5/2"
    ],
    "params": {
+    "shift": {
+     "value": 1.8,
+     "min": 1.2,
+     "max": 2.4
+    },
     "center": {
-     "value": 62.5,
-     "min": 62.2,
-     "max": 63.2
+     "value": 62.7,
+     "expr": "Ir0.center + Ir4.shift"
     },
     "fwhm": {
-     "value": 1.2,
-     "expr": "Ir4.fwhm"
+     "value": 1.3,
+     "expr": "Ir3.fwhm"
     },
     "eta": {
      "value": 0.3,
-     "expr": "Ir4.eta"
+     "expr": "Ir3.eta"
     },
     "area": {
-     "value": 1000,
+     "value": 500,
      "min": 0
     },
     "split": {
@@ -134,14 +142,18 @@
   },
   {
    "name": "Sat",
-   "label": "Satellite peak",
+   "label": "Oxide satellite",
    "shape": "gaussian",
    "in_total": false,
    "params": {
+    "shift": {
+     "value": 5.8,
+     "min": 4.5,
+     "max": 7.5
+    },
     "center": {
-     "value": 67.0,
-     "min": 65.5,
-     "max": 69.0
+     "value": 66.7,
+     "expr": "Ir0.center + Sat.shift"
     },
     "fwhm": {
      "value": 2.5,
@@ -155,5 +167,11 @@
    }
   }
  ],
- "id": "ir4f_metal_oxide"
+ "id": "ir4f_metal_oxide",
+ "legend_order": [
+  "Ir4",
+  "Ir3",
+  "Ir0",
+  "Sat"
+ ]
 }

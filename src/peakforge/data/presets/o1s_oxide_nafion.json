@@ -1,0 +1,109 @@
+{
+ "name_en": "O 1s – oxide + Nafion (ether C–O–C, SO₃⁻)",
+ "name_zh": "O 1s 氧化物 + Nafion（醚氧 C–O–C、SO₃⁻）",
+ "region": "O 1s",
+ "range": [
+  524.0,
+  542.0
+ ],
+ "background": {
+  "kind": "shirley"
+ },
+ "note_en": "Nafion-containing electrodes: ether C–O–C ≈ 535.3 eV; SO₃⁻ oxygen overlaps adsorbed water at 532–533 eV (ether : sulfonate O = 2 : 3 for subtraction). Shared FWHM. Ether O belongs to Nafion and is excluded from the catalyst O fractions.",
+ "note_zh": "含 Nafion 的电极：醚氧 C–O–C 约 535.3 eV；SO₃⁻ 的氧与吸附水重叠在 532–533 eV（醚氧 : 磺酸根氧 = 2 : 3，可据此估算扣除）。所有组分共用 FWHM。 醚氧属于 Nafion，不计入催化剂氧物种占比。",
+ "components": [
+  {
+   "name": "O_lat",
+   "label": "Lattice O²⁻",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 530.0,
+     "min": 529.3,
+     "max": 530.9
+    },
+    "fwhm": {
+     "value": 1.4,
+     "min": 1.0,
+     "max": 2.0
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "O_OH",
+   "label": "Hydroxyl OH",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 531.5,
+     "min": 530.9,
+     "max": 532.2
+    },
+    "fwhm": {
+     "value": 1.4,
+     "expr": "O_lat.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "O_H2O",
+   "label": "adsorbed H₂O / SO₃⁻",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 532.9,
+     "min": 532.2,
+     "max": 533.8
+    },
+    "fwhm": {
+     "value": 1.4,
+     "expr": "O_lat.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "O_ether",
+   "label": "Nafion ether C-O-C",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 535.3,
+     "min": 534.6,
+     "max": 536.3
+    },
+    "fwhm": {
+     "value": 1.4,
+     "expr": "O_lat.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    },
+    "area": {
+     "value": 100,
+     "min": 0
+    }
+   },
+   "in_total": false
+  }
+ ],
+ "id": "o1s_oxide_nafion",
+ "legend_order": [
+  "O_lat",
+  "O_H2O",
+  "O_OH",
+  "O_ether"
+ ]
+}

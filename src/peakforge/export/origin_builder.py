@@ -36,6 +36,46 @@ def _set(lay, plot, *opts):
     lay.lt_exec(";".join(f"set {sname} {o}" for o in opts) + ";")
 
 
+def _lt(op, lay, expr: str) -> float:
+    lay.lt_exec(f"double __pfv = {expr};")
+    return float(op.lt_float("__pfv"))
+
+
+def _clear_legend_and_label(op, lay, xcol, y, hi, lo, ymin, ymax, span, use_tpl):
+    """Read back where Origin actually drew the legend (top-left) and the region/sample label
+    (bottom-left) and set the y range so the spectrum fills the frame without touching either.
+    Objects stay fixed on the page, so their positions as FRACTIONS of the frame are invariant.
+    Reversed BE axis: an object's x1 is its visual right edge."""
+    yd = y.max(axis=1)                   # highest curve at each energy
+    yb = y.min(axis=1)                   # lowest curve (background) at each energy
+    lab = "Text2" if use_tpl else "Text"
+    for _ in range(3):
+        yf, yt = _lt(op, lay, "layer.y.from"), _lt(op, lay, "layer.y.to")
+        rng = yt - yf
+        # objects: x, y = centre, dx, dy = size in axis units (dx < 0 on the reversed BE axis)
+        f_bot = (_lt(op, lay, "legend.y") - abs(_lt(op, lay, "legend.dy")) / 2 - yf) / rng
+        right = _lt(op, lay, "legend.x") - abs(_lt(op, lay, "legend.dx")) / 2
+        under = xcol >= right - 0.02 * (hi - lo)
+        need_top = yt
+        if under.any() and 0.2 < f_bot < 1.0:
+            top = float(yd[under].max())
+            need_top = max(ymax + 0.05 * span, yf + (top - yf) / max(0.05, f_bot - 0.03))
+        # label: fraction of frame height of its top, and its right edge
+        f_top = (_lt(op, lay, f"{lab}.y") + abs(_lt(op, lay, f"{lab}.dy")) / 2 - yf) / rng
+        if use_tpl:          # 'Text' (region) sits above 'Text2' (sample): use the higher of the two
+            f_top = max(f_top, (_lt(op, lay, "Text.y") + abs(_lt(op, lay, "Text.dy")) / 2 - yf) / rng)
+        right_l = _lt(op, lay, f"{lab}.x") - abs(_lt(op, lay, f"{lab}.dx")) / 2
+        under_l = xcol >= right_l - 0.02 * (hi - lo)
+        need_from = yf
+        if under_l.any() and 0.0 < f_top < 0.8:
+            bot = float(yb[under_l].min())
+            f = f_top + 0.03
+            need_from = min(ymin - 0.03 * span, (bot - f * need_top) / (1 - f))
+        if abs(need_top - yt) < 1e-6 * span and abs(need_from - yf) < 1e-6 * span:
+            break
+        lay.lt_exec(f"layer.y.from={need_from}; layer.y.to={need_top};")
+
+
 def build(spec: dict, op=None, show: bool = False):
     import pandas as pd
     if op is None:
@@ -95,25 +135,16 @@ def build(spec: dict, op=None, show: bool = False):
         ymin, ymax = float(y.min()), float(y.max())
         span = ymax - ymin
         step = 5 if hi - lo > 9 else 2
-        # legend (top-left) and region/sample label (bottom-left) must stay clear of the data on the
-        # high-BE (left) side: solve top and bottom limits together, as in the PNG renderer
         xcol = df.iloc[:, 0].to_numpy()
-        left = xcol >= hi - 0.47 * (hi - lo)
-        yl = y[left] if left.any() else y
-        top_left, bot_left = float(yl.max()), float(yl.min())
-        n_comp = sum(1 for c in g["columns"] if c["role"] == "comp")
-        f_leg = min(0.75, 0.068 * (3 + n_comp) + 0.05)
-        f_lab = 0.24
-        y_lo, y_hi = ymin - 0.32 * span, ymax + 0.08 * span
-        for _ in range(3):
-            y_hi = max(ymax + 0.08 * span, y_lo + (top_left - y_lo) / (1 - f_leg))
-            y_lo = min(ymin - 0.05 * span, bot_left - f_lab * (y_hi - y_lo))
+        y_lo, y_hi = ymin - 0.3 * span, ymax + 0.08 * span     # refined below from the drawn legend/label
         lay.lt_exec(f"layer.x.from={hi}; layer.x.to={lo}; layer.x.inc={step};"
                     f"layer.y.from={y_lo}; layer.y.to={y_hi};")
 
         entries = [f"\\l({i_m}) {g['legend'][0]}", f"\\l({i_b}) {g['legend'][1]}",
                    f"\\l({i_e}) {g['legend'][2]}"]
-        entries += [f"\\l({li}) {txt}" for li, txt in zip(legend_idx, g["legend"][3:])]
+        comp_entries = [f"\\l({li}) {txt}" for li, txt in zip(legend_idx, g["legend"][3:])]
+        order = g.get("legend_order") or list(range(len(comp_entries)))
+        entries += [comp_entries[i] for i in order if i < len(comp_entries)]
         leg = "%(CRLF)".join(entries)
         region = g.get("region", "").replace('"', "'")
         sample = g.get("sample", "").replace('"', "'")
@@ -122,16 +153,19 @@ def build(spec: dict, op=None, show: bool = False):
             lay.lt_exec(f'legend.text$="{leg}"; Text.text$="{region}"; Text2.text$="{sample}";'
                         f"legend.font=font({font}); Text.font=font({font}); Text2.font=font({font});"
                         f"xb.font=font({font}); yl.font=font({font}); layer.x.label.font=font({font});")
+            # a longer legend grows to the left past the frame: re-align its left edge with the
+            # bottom-left label (page units; on the reversed BE axis x1 is the visual RIGHT edge)
+            lay.lt_exec("legend.left = Text.left;")
         else:
             font = g.get("font", "Arial")
-            x_left = hi - 0.03 * (hi - lo)
             lay.lt_exec(
                 'xb.text$="Binding energy (eV)"; yl.text$="Intensity (a.u.)";'
                 "layer.y.showLabels=0; layer.y.ticks=0; layer.y.minorTicks=0;"
                 f'legend -r; legend.text$="{leg}"; legend.font=font({font}); legend.showframe=0;'
-                f"legend.x1={x_left}; legend.y2={ymax + 0.52 * span};"
-                f'label -s -sa -n Text "{region}%(CRLF){sample}"; Text.font=font({font});'
-                f"Text.showframe=0; Text.x1={x_left}; Text.y1={ymin - 0.25 * span};")
+                f'label -s -sa -n Text "{region}%(CRLF){sample}"; Text.font=font({font}); Text.showframe=0;'
+                f"Text.x1={lo + 0.97 * (hi - lo)}; Text.y1={y_lo + 0.03 * (y_hi - y_lo)};"
+                "Text.left = legend.left;")
+        _clear_legend_and_label(op, lay, xcol, y, hi, lo, ymin, ymax, span, use_tpl)
         if g.get("png"):
             gp.save_fig(g["png"], width=1600)
     op.save(spec["out"])

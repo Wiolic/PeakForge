@@ -35,7 +35,7 @@
   },
   {
    "name": "O_OH",
-   "label": "–OH",
+   "label": "Hydroxyl OH",
    "shape": "gl",
    "params": {
     "center": {
@@ -55,7 +55,7 @@
   },
   {
    "name": "O_H2O",
-   "label": "Adsorbed H₂O",
+   "label": "adsorbed H₂O",
    "shape": "gl",
    "params": {
     "center": {
@@ -74,5 +74,10 @@
    }
   }
  ],
- "id": "o1s_oxide"
+ "id": "o1s_oxide",
+ "legend_order": [
+  "O_lat",
+  "O_H2O",
+  "O_OH"
+ ]
 }

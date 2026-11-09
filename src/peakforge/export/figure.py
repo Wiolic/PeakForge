@@ -38,6 +38,40 @@ def _darken(c, k=0.28):
     return tuple(max(0.0, v * (1 - k)) for v in c)
 
 
+def _fit_ylim(ax, res, o, x, leg, fs):
+    """Y limits so that the spectrum fills the panel while the top-left legend and the bottom-left
+    region/sample label stay clear of the data. The legend box is MEASURED (renderer), not guessed."""
+    ymin = float(min(res.y.min(), res.bg.min()))
+    ymax = float(max(res.y.max(), res.envelope.max()))
+    span = ymax - ymin or 1.0
+    try:
+        h_in = ax.get_position().height * ax.figure.get_figheight()
+    except Exception:       # noqa: BLE001
+        h_in = 3.0
+    line = fs * 1.32 / 72 / max(h_in, 0.5)
+    f_lab, f_lab_w = min(0.45, 2.6 * line + 0.05), 0.35      # label: height / width fractions
+    f_leg_h, f_leg_w = 0.0, 0.0
+    if leg is not None:
+        try:
+            r_ = ax.figure.canvas.get_renderer()
+            bb = leg.get_window_extent(r_).transformed(ax.transAxes.inverted())
+            f_leg_h, f_leg_w = 1.0 - bb.y0 + 0.03, bb.x1 + 0.03
+        except Exception:   # noqa: BLE001
+            f_leg_h, f_leg_w = 0.45, 0.4
+    xr = x.max() - x.min()
+    yy = np.maximum(res.y[o], res.envelope[o])
+    under_leg = x >= x.max() - f_leg_w * xr          # reversed axis: left = high BE
+    under_lab = x >= x.max() - f_lab_w * xr
+    top_leg = float(yy[under_leg].max()) if under_leg.any() else ymin
+    bot_lab = float(min(yy[under_lab].min(), res.bg[o][under_lab].min())) if under_lab.any() else ymin
+    lo_y, hi_y = ymin - 0.25 * span, ymax + 0.06 * span
+    for _ in range(4):
+        if f_leg_h:
+            hi_y = max(ymax + 0.06 * span, lo_y + (top_leg - lo_y) / max(1e-9, 1 - f_leg_h))
+        lo_y = min(ymin - 0.04 * span, bot_lab - f_lab * (hi_y - lo_y))
+    ax.set_ylim(lo_y, hi_y)
+
+
 def draw_fit(ax, model: RegionModel, res: FitResult, th_name: str | None = None, sample: str = "",
              region: str = "", legend: bool = True, residual_ax=None, fs: float = 12,
              offset: float = 0.0, show_labels: bool = True, legend_kw: dict | None = None,
@@ -58,48 +92,30 @@ def draw_fit(ax, model: RegionModel, res: FitResult, th_name: str | None = None,
                       mec=rgb01(th["data"]), mew=1.2, label="Measured"),
                Line2D([], [], color=rgb01(th["background"]), lw=lw, label="Background"),
                Line2D([], [], color=rgb01(th["envelope"]), lw=lw, label="Fit envelope")]
+    patches = {}
     for i, c in enumerate(model.components):
         col = rgb01(comp_color(th, i, c.color))
         edge = _darken(col)
         tot = np.sum(res.comp_curves[c.name], axis=0)[o]
         ax.fill_between(x, bg, bg + tot, color=col, alpha=th["fill_alpha"], lw=0)
         ax.plot(x, bg + tot, color=edge, lw=lw * 0.6, alpha=0.9)
-        handles.append(Patch(facecolor=(*col, th["fill_alpha"] + 0.15), edgecolor=edge, lw=0.8,
-                             label=label_mathtext(c.label or c.name)))
+        patches[c.name] = Patch(facecolor=(*col, th["fill_alpha"] + 0.15), edgecolor=edge, lw=0.8,
+                                label=label_mathtext(c.label or c.name))
+    handles += [patches[c.name] for c in model.legend_components()]
     ax.plot(x, bg, color=rgb01(th["background"]), lw=lw)
     ax.plot(x, res.envelope[o] + offset, color=rgb01(th["envelope"]), lw=lw)
     ax.plot(x, res.y[o] + offset, "o", ms=ms, mfc="none", mec=rgb01(th["data"]),
             mew=0.9, zorder=5)
     ax.set_xlim(x.max(), x.min())
-    if show_labels and offset == 0.0:
-        ymin = float(min(res.y.min(), res.bg.min()))
-        ymax = float(max(res.y.max(), res.envelope.max()))
-        span = ymax - ymin or 1.0
-        try:
-            h_in = ax.get_position().height * ax.figure.get_figheight()
-        except Exception:       # noqa: BLE001
-            h_in = 3.0
-        line = fs * 1.32 / 72 / max(h_in, 0.5)            # one text line as a fraction of axes height
-        f_lab = min(0.45, 2.6 * line + 0.05)               # bottom-left: region + sample label
-        f_leg = min(0.75, (3 + len(model.components)) * line + 0.04) if legend else 0.0
-        xr = x.max() - x.min()
-        left = x >= x.max() - 0.47 * xr                    # high-BE side = left on a reversed axis
-        y_left = np.maximum(res.y[o], res.envelope[o])[left] if left.any() else np.array([ymin])
-        top_left, bot_left = float(y_left.max()), float(min(y_left.min(), res.bg[o][left].min()))
-        lo_y, hi_y = ymin - 0.42 * span, ymax + 0.06 * span
-        for _ in range(3):   # legend clear of the left-side data, label clear of the left baseline
-            T = hi_y - lo_y
-            if legend:
-                hi_y = max(ymax + 0.06 * span, lo_y + (top_left - lo_y) / max(1e-9, 1 - f_leg))
-            T = hi_y - lo_y
-            lo_y = min(ymin - 0.05 * span, bot_left - f_lab * T)
-        ax.set_ylim(lo_y, hi_y)
     style_axes(ax, th, fs)
+    leg = None
     if legend:
         kw = dict(frameon=False, loc="upper left", prop={"family": th["font"], "size": fs},
                   handlelength=1.6, handleheight=0.8, labelspacing=0.25, borderaxespad=0.3)
         kw.update(legend_kw or {})
-        ax.legend(handles=handles, **kw)
+        leg = ax.legend(handles=handles, **kw)
+    if show_labels and offset == 0.0:
+        _fit_ylim(ax, res, o, x, leg, fs)
     if show_labels:
         reg = region_mathtext(region or model.region)
         smp = label_mathtext(sample) if sample else ""

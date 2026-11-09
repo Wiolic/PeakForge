@@ -47,6 +47,7 @@ def make_spec(items: list[tuple[str, str, RegionModel, FitResult]], out_dir: str
             region=region_origin(region), sample=label_origin(sample),
             legend=["Measured", "Background", "Fit envelope"] + [label_origin(c.label or c.name)
                                                                 for c in model.components],
+            legend_order=[model.names().index(c.name) for c in model.legend_components()],
             xlim=[float(res.x.max()), float(res.x.min())],
             png=os.path.abspath(os.path.join(out_dir, book + "_origin.png")) if png else None))
     tpl = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "PeakForge_XPS.otpu")
