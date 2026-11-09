@@ -8,8 +8,6 @@ import sys
 def run(project: str | None = None) -> int:
     import matplotlib
     matplotlib.use("QtAgg")
-    matplotlib.rcParams["font.family"] = ["Arial", "Microsoft YaHei", "SimHei", "Noto Sans CJK SC", "DejaVu Sans"]
-    matplotlib.rcParams["axes.unicode_minus"] = False
     from PySide6.QtGui import QIcon
     from PySide6.QtWidgets import QApplication
 
@@ -25,6 +23,9 @@ def run(project: str | None = None) -> int:
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setStyle("Fusion")
+    from .style import QSS, mpl_style
+    app.setStyleSheet(QSS)
+    mpl_style()
     if os.path.exists(ICON):
         app.setWindowIcon(QIcon(ICON))
     holder = {}

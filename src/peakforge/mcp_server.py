@@ -182,7 +182,7 @@ def quantify(project: str | None = None) -> list[dict]:
 def export(formats: list[str] | None = None, theme: str | None = None, keys: list[str] | None = None,
            project: str | None = None) -> dict:
     """Export figures (png/tiff/svg/pdf), Excel (xlsx) and Origin (.opju via Origin, else a script)
-    to <project>/output/export. Themes: ir_blue (default), warm, contrast, muted, gray."""
+    to <project>/output/export. Themes (landscape names, 6 families x 4): glacier (default), fjord, lagoon, abyss, moss, pinewood, bamboo, rainforest, desert, canyon, loess, badlands, dawn, dusk, aurora, twilight, basalt, granite, slate, highland, lavender, meadow, autumn, prairie; custom ones are "user:<id>"."""
     from .export.exporter import export_all
     p = _p(project)
     return _jsonable(export_all(p, keys and [ops.resolve_key(p, k) for k in keys], theme=theme,

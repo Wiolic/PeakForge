@@ -63,7 +63,7 @@ def export_all(project, keys=None, out_dir: str | None = None, theme: str | None
                formats=("png", "xlsx", "origin"), dpi: int = 300, stack: bool = True) -> dict:
     out_dir = out_dir or project.out_dir("export")
     os.makedirs(out_dir, exist_ok=True)
-    theme = theme or project.settings.get("theme", "ir_blue")
+    theme = theme or project.settings.get("theme", "glacier")
     items = fitted_items(project, keys)
     res: dict = dict(out_dir=out_dir, figures=[], n=len(items))
     figs = [f for f in formats if f in ("png", "tiff", "svg", "pdf")]

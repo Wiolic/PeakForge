@@ -6,17 +6,18 @@ import os
 import time
 
 import numpy as np
-from PySide6.QtCore import QFileSystemWatcher, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence
-from PySide6.QtWidgets import (QDockWidget, QFileDialog, QHeaderView, QInputDialog, QLabel, QMainWindow,
-                               QMessageBox, QPlainTextEdit, QScrollArea, QTableWidget, QTableWidgetItem,
-                               QTabWidget, QTreeWidget, QTreeWidgetItem)
+from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
+from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence, QPainter, QPixmap
+from PySide6.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QHeaderView, QInputDialog, QLabel,
+                               QMainWindow, QMessageBox, QPlainTextEdit, QScrollArea, QSplitter, QTableWidget,
+                               QTableWidgetItem, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem,
+                               QVBoxLayout, QWidget)
 
 from .. import APP_NAME, APP_NAME_ZH, __version__, presets
 from ..core.diagnostics import diagnose
 from ..core.fit import fit as run_fit
 from ..core.model import Component, Param, RegionModel
-from ..export.themes import THEMES
+from ..export.themes import theme_id
 from ..io import FILE_FILTER
 from ..project import EXT, Project
 from . import i18n
@@ -24,6 +25,30 @@ from .canvas import SpectrumView
 from .dialogs import AgentDialog, BatchDialog, ExportDialog
 from .i18n import tr
 from .model_panel import ModelPanel
+from .palette import PalettePicker
+from .style import C, icon
+
+
+def _dot(color: str, d: int = 10) -> QIcon:
+    pm = QPixmap(d * 2, d * 2)
+    pm.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setBrush(QColor(color)); p.setPen(Qt.PenStyle.NoPen)
+    p.drawEllipse(4, 4, d * 2 - 8, d * 2 - 8)
+    p.end()
+    return QIcon(pm)
+
+
+def _card(title, margins=(12, 10, 12, 10)):
+    f = QFrame(); f.setObjectName("card")
+    lay = QVBoxLayout(f); lay.setContentsMargins(*margins); lay.setSpacing(8)
+    if title:
+        t = QLabel(title); t.setObjectName("cardTitle")
+        if margins[0] == 0:
+            t.setContentsMargins(14, 0, 14, 0)
+        lay.addWidget(t)
+    return f, lay
 from .workers import submit
 
 ICON = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "peakforge.ico")
@@ -45,48 +70,141 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(QIcon(ICON))
         self.resize(1500, 900)
 
+        root = QWidget(); root.setObjectName("root")
+        self.setCentralWidget(root)
+        outer = QVBoxLayout(root)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # ---- top bar: brand + main actions + palette
+        top = QFrame(); top.setObjectName("topbar")
+        tl = QHBoxLayout(top); tl.setContentsMargins(14, 8, 14, 8); tl.setSpacing(4)
+        logo = QLabel()
+        if os.path.exists(ICON):
+            logo.setPixmap(QIcon(ICON).pixmap(26, 26))
+        brand = QLabel(APP_NAME); brand.setObjectName("brand")
+        self.brand_sub = QLabel(APP_NAME_ZH); self.brand_sub.setObjectName("brandSub")
+        tl.addWidget(logo); tl.addSpacing(4); tl.addWidget(brand); tl.addWidget(self.brand_sub); tl.addSpacing(18)
+        self.panel = ModelPanel()
+        self.tool = {}
+        for key, ic, text, slot, primary in (
+                ("open", "folder", tr("open_project"), self.open_project_dialog, False),
+                ("import", "import", tr("import"), self.import_files, False),
+                ("charge", "target", tr("auto_charge").split(" (")[0], self.auto_charge, False),
+                ("fit", "play", tr("fit"), lambda: self.fit_current(self.panel.starts.value()), True),
+                ("fit_all", "layers", tr("fit_all"), self.fit_all, False),
+                ("diag", "pulse", tr("diagnose"), self.diagnose_current, False),
+                ("quant", "percent", tr("quant"), self.show_quant, False),
+                ("export", "export", tr("export_all").rstrip("…."), self.export, False)):
+            b = QToolButton(); b.setText(text.rstrip("…."))
+            b.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+            b.setIcon(icon(ic, "#FFFFFF" if primary else None)); b.setIconSize(QSize(17, 17))
+            if primary:
+                b.setObjectName("primaryTool")
+            b.clicked.connect(slot)
+            tl.addWidget(b)
+            self.tool[key] = b
+        tl.addStretch(1)
+        pl = QLabel(); pl.setPixmap(icon("palette", C["muted"]).pixmap(17, 17)); tl.addWidget(pl)
+        self.palette = PalettePicker()
+        self.palette.changed.connect(self.set_theme)
+        tl.addWidget(self.palette)
+        ab = QToolButton(); ab.setIcon(icon("bot")); ab.setText(tr("agent"))
+        ab.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        ab.clicked.connect(lambda: AgentDialog(self.project, self).exec())
+        tl.addWidget(ab)
+        outer.addWidget(top)
+
+        # ---- body: sidebar | (plot / results) | inspector
+        body = QWidget()
+        bl = QHBoxLayout(body); bl.setContentsMargins(10, 10, 10, 6); bl.setSpacing(0)
+        split = QSplitter(Qt.Orientation.Horizontal); split.setChildrenCollapsible(False)
+        bl.addWidget(split)
+        outer.addWidget(body, 1)
+
+        # sidebar
+        side, sl = _card(tr("samples"))
+        self.tree = QTreeWidget()
+        self.tree.setHeaderHidden(True)
+        self.tree.setColumnCount(2)
+        self.tree.setIndentation(14)
+        self.tree.header().setStretchLastSection(False)
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.tree.currentItemChanged.connect(self._tree_changed)
+        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self._tree_menu)
+        sl.addWidget(self.tree)
+        side.setMinimumWidth(240)
+        split.addWidget(side)
+
+        # centre: plot card + results card
+        vsplit = QSplitter(Qt.Orientation.Vertical); vsplit.setChildrenCollapsible(False)
+        plot_card, pl_ = _card(None)
+        hdr = QHBoxLayout(); hdr.setContentsMargins(4, 0, 0, 0)
+        self.plot_title = QLabel(""); self.plot_title.setObjectName("cardTitle")
+        self.plot_sub = QLabel(""); self.plot_sub.setObjectName("hint")
+        hdr.addWidget(self.plot_title); hdr.addSpacing(8); hdr.addWidget(self.plot_sub); hdr.addStretch(1)
         self.view = SpectrumView()
-        self.setCentralWidget(self.view)
+        btns = {}
+        for ic, tip, chk in (("home", tr("view_reset"), False), ("move", tr("view_pan"), True),
+                             ("zoom", tr("view_zoom"), True), ("image", tr("view_save"), False)):
+            b = QToolButton(); b.setIcon(icon(ic, C["muted"])); b.setToolTip(tip); b.setCheckable(chk)
+            b.setIconSize(QSize(16, 16))
+            hdr.addWidget(b)
+            btns[ic] = b
+        btns["home"].clicked.connect(self.view.view_home)
+        btns["image"].clicked.connect(self.view.view_save)
+        btns["move"].toggled.connect(self.view.view_pan)
+        btns["zoom"].toggled.connect(self.view.view_zoom)
+        btns["move"].toggled.connect(lambda on: on and btns["zoom"].setChecked(False))
+        btns["zoom"].toggled.connect(lambda on: on and btns["move"].setChecked(False))
+        pl_.addLayout(hdr)
+        pl_.addWidget(self.view, 1)
         self.view.edited.connect(self._canvas_edited)
         self.view.add_peak.connect(self._add_peak_at)
         self.view.remove_comp.connect(self._remove_comp)
         self.view.status.connect(lambda s: self.statusBar().showMessage(s, 3000))
+        vsplit.addWidget(plot_card)
 
-        # left: spectra tree
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabels([tr("spectra"), tr("rms")])
-        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tree.currentItemChanged.connect(self._tree_changed)
-        self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tree.customContextMenuRequested.connect(self._tree_menu)
-        d = QDockWidget(tr("spectra")); d.setObjectName("spectra"); d.setWidget(self.tree)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, d)
-
-        # right: model panel
-        self.panel = ModelPanel()
-        self.panel.changed.connect(self._panel_changed)
-        self.panel.fit_requested.connect(self.fit_current)
-        self.panel.diag_requested.connect(self.diagnose_current)
-        self.panel.preset_requested.connect(self._preset_requested)
-        sa = QScrollArea(); sa.setWidgetResizable(True); sa.setWidget(self.panel); sa.setMinimumWidth(430)
-        d2 = QDockWidget(tr("model")); d2.setObjectName("model"); d2.setWidget(sa)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, d2)
-
-        # bottom: results / diagnostics / quant / log
-        self.tabs = QTabWidget()
+        res_card, rl = _card(None, margins=(6, 2, 6, 6))
+        self.tabs = QTabWidget(); self.tabs.setDocumentMode(True)
         self.res_tab = QTableWidget(); self.res_tab.verticalHeader().setVisible(False)
+        self.res_tab.setShowGrid(False); self.res_tab.setAlternatingRowColors(True)
+        self.res_tab.horizontalHeader().setStretchLastSection(True)
         self.diag_txt = QPlainTextEdit(); self.diag_txt.setReadOnly(True)
         self.quant_tab = QTableWidget(); self.quant_tab.verticalHeader().setVisible(False)
+        self.quant_tab.setShowGrid(False)
         self.quant_tab.itemChanged.connect(self._rsf_edited)
         self.log = QPlainTextEdit(); self.log.setReadOnly(True)
         self.tabs.addTab(self.res_tab, tr("results"))
         self.tabs.addTab(self.diag_txt, tr("diagnose"))
         self.tabs.addTab(self.quant_tab, tr("quant"))
         self.tabs.addTab(self.log, tr("log"))
-        d3 = QDockWidget(tr("results")); d3.setObjectName("results"); d3.setWidget(self.tabs)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, d3)
-        self.resizeDocks([d3], [230], Qt.Orientation.Vertical)
-        self.resizeDocks([d], [260], Qt.Orientation.Horizontal)
+        rl.addWidget(self.tabs)
+        vsplit.addWidget(res_card)
+        vsplit.setStretchFactor(0, 5); vsplit.setStretchFactor(1, 2)
+        vsplit.setSizes([620, 230])
+        split.addWidget(vsplit)
+
+        # inspector
+        insp, il = _card(tr("inspector"), margins=(0, 12, 0, 0))
+        self.panel.changed.connect(self._panel_changed)
+        self.panel.fit_requested.connect(self.fit_current)
+        self.panel.diag_requested.connect(self.diagnose_current)
+        self.panel.preset_requested.connect(self._preset_requested)
+        sa = QScrollArea(); sa.setWidgetResizable(True); sa.setWidget(self.panel)
+        sa.setFrameShape(QFrame.Shape.NoFrame)
+        self.panel.setObjectName("modelPanel")
+        sa.viewport().setObjectName("modelPanel")
+        il.addWidget(sa)
+        insp.setMinimumWidth(480)
+        split.addWidget(insp)
+        split.setStretchFactor(0, 0); split.setStretchFactor(1, 1); split.setStretchFactor(2, 0)
+        split.setSizes([250, 880, 500])
+
+        self.metric_lbl = QLabel(""); self.metric_lbl.setObjectName("metric")
+        self.statusBar().addPermanentWidget(self.metric_lbl)
 
         self.watcher = QFileSystemWatcher(self)
         self.watcher.fileChanged.connect(self._fs_changed)
@@ -145,27 +263,11 @@ class MainWindow(QMainWindow):
             a.setChecked(i18n.lang() == code)
             a.triggered.connect(lambda _=False, c=code: self.switch_lang(c))
             g.addAction(a); ml.addAction(a)
-        mt = m.addMenu(tr("theme"))
-        g2 = QActionGroup(self)
-        self.theme_actions = {}
-        for k, t in THEMES.items():
-            a = QAction(t["name_zh"] if i18n.lang() == "zh" else t["name_en"], self, checkable=True)
-            a.triggered.connect(lambda _=False, kk=k: self.set_theme(kk))
-            g2.addAction(a); mt.addAction(a)
-            self.theme_actions[k] = a
-        self.theme_actions["ir_blue"].setChecked(True)
-
         m = mb.addMenu(tr("menu_agent"))
         self._act(m, tr("agent_connect"), lambda: AgentDialog(self.project, self).exec())
         m = mb.addMenu(tr("menu_help"))
         self._act(m, tr("about"), self.about)
 
-        tb = self.addToolBar("main"); tb.setObjectName("toolbar")
-        for text, slot in ((tr("open_project"), self.open_project_dialog), (tr("import"), self.import_files),
-                           (tr("auto_charge"), self.auto_charge), (tr("fit"), lambda: self.fit_current(self.panel.starts.value())),
-                           (tr("fit_all"), self.fit_all), (tr("diagnose"), self.diagnose_current),
-                           (tr("export_all"), self.export)):
-            a = QAction(text, self); a.triggered.connect(slot); tb.addAction(a)
 
     def _fill_recent(self):
         self.recent_menu.clear()
@@ -219,10 +321,10 @@ class MainWindow(QMainWindow):
             return
         self._remember(self.project.path)
         self.setWindowTitle(f"{APP_NAME} {APP_NAME_ZH} — {self.project.name}")
-        th = self.project.settings.get("theme", "ir_blue")
+        th = theme_id(self.project.settings.get("theme"))
         self.view.theme = th
-        if th in self.theme_actions:
-            self.theme_actions[th].setChecked(True)
+        self.palette.set_theme(th)
+        self.brand_sub.setText(f"{APP_NAME_ZH}   ·   {self.project.name}")
         self._watch()
         self.refresh_tree()
         self.say(f"{self.project.path}: {len(self.project.spectra)} spectra")
@@ -283,19 +385,18 @@ class MainWindow(QMainWindow):
         target = None
         for smp in p.samples():
             sh = p.shift(smp)
-            it = QTreeWidgetItem([f"{p.sample_label(smp)}   ({tr('shift')} {sh:+.2f} eV)", ""])
+            it = QTreeWidgetItem([p.sample_label(smp), f"{sh:+.2f} eV"])
+            f = it.font(0); f.setBold(True); it.setFont(0, f)
+            it.setForeground(1, QColor(C["faint"]))
+            it.setToolTip(1, tr("shift"))
             it.setData(0, Qt.ItemDataRole.UserRole, ("sample", smp))
             self.tree.addTopLevelItem(it)
             for k in p.keys(sample=smp):
                 s = p.spectra[k]
                 rec = p.get_model_record(k)
-                rms = ""
-                if rec and rec.get("result"):
-                    rms = f"{rec['result'].get('rms_pct', 0):.2f}%" + (" *" if rec.get("result_stale") else "")
-                elif rec:
-                    rms = "…"
-                ch = QTreeWidgetItem([("● " if rec else "○ ") + s.region + (f" #{s.index}" if s.index else ""), rms])
+                ch = QTreeWidgetItem(["", ""])
                 ch.setData(0, Qt.ItemDataRole.UserRole, ("spec", k))
+                self._decorate(ch, s, rec)
                 it.addChild(ch)
                 if first is None and not s.is_survey:
                     first = ch
@@ -306,6 +407,19 @@ class MainWindow(QMainWindow):
         (target or first) and self.tree.setCurrentItem(target or first)
         if self.tree.currentItem() is None:
             self.view.clear(tr("no_project") if not p.spectra else "")
+
+    def _decorate(self, item, s, rec):
+        """Region row: status dot (grey = no model, amber = not fitted / stale, green = fitted) + RMS."""
+        item.setText(0, s.region + (f"  #{s.index}" if s.index else ""))
+        if rec and rec.get("result") and not rec.get("result_stale"):
+            col, rms = C["ok"], f"{rec['result'].get('rms_pct', 0):.2f} %"
+        elif rec:
+            col, rms = C["warn"], (f"{rec['result'].get('rms_pct', 0):.2f} %" if rec.get("result") else "—")
+        else:
+            col, rms = "#C9CDD4", ""
+        item.setIcon(0, _dot(col))
+        item.setText(1, rms)
+        item.setForeground(1, QColor(C["muted"]))
 
     def _tree_changed(self, cur, _prev):
         if cur is None:
@@ -366,6 +480,14 @@ class MainWindow(QMainWindow):
                 self.say(f"evaluate: {e}")
                 res = None
         title = f"{p.sample_label(s.sample)} · {s.region}"
+        self.plot_title.setText(s.region)
+        meta = s.meta or {}
+        bits = [p.sample_label(s.sample), f"{tr('shift')} {sh:+.2f} eV"]
+        if meta.get("pass_energy"):
+            bits.append(f"PE {meta['pass_energy']:g} eV")
+        if self.model is not None and self.model.preset:
+            bits.append(self.model.preset)
+        self.plot_sub.setText("   ·   ".join(bits))
         self.view.show_spectrum(s.be + sh, s.cps, title, self.model, prep, res, keep_view)
         self.panel.set_model(self.model, s.region, res.stderr if res is not None else None)
         self._fill_results(res)
@@ -392,10 +514,13 @@ class MainWindow(QMainWindow):
                     txt = f"{v:.1f}"
                 t.setItem(i, j, QTableWidgetItem(txt))
         t.resizeColumnsToContents()
-        msg = f"{tr('rms')}: {res.rms_pct:.2f} %   χ²ᵣ {res.chi2_red:.2f}   BIC {res.bic:.1f}"
+        msg = f"{tr('rms')} {res.rms_pct:.2f} %     χ²ᵣ {res.chi2_red:.2f}     BIC {res.bic:.1f}"
         if res.bound_hits:
-            msg += "   ⚠ " + ", ".join(res.bound_hits)
-        self.statusBar().showMessage(msg)
+            msg += f"     ⚠ {len(res.bound_hits)} @bounds"
+            self.metric_lbl.setToolTip("\n".join(res.bound_hits))
+        else:
+            self.metric_lbl.setToolTip("")
+        self.metric_lbl.setText(msg + "   ")
 
     def _store(self, push_undo=True):
         if self.key is None or self.model is None:
@@ -450,9 +575,7 @@ class MainWindow(QMainWindow):
             return
         rec = self.project.get_model_record(self.key)
         s = self.project.spectra[self.key]
-        it.setText(0, ("● " if rec else "○ ") + s.region + (f" #{s.index}" if s.index else ""))
-        if rec and rec.get("result"):
-            it.setText(1, f"{rec['result'].get('rms_pct', 0):.2f}%" + (" *" if rec.get("result_stale") else ""))
+        self._decorate(it, s, rec)
 
     # ------------------------------------------------------------------ model building
     def _preset_requested(self, pid: str):

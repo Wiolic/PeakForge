@@ -15,7 +15,8 @@ publication figures and Excel. Use it fully by hand in the GUI, or let an AI age
 - **Presets**: C 1s adventitious, O 1s oxide, Ir 4f, Ta 4f, Pt 4f, Au 4f; save your own.
 - **Diagnostics**: parameters at bounds, strong correlations, ΔBIC when removing each component, multi-start stability.
 - **Batch**: reuse a model across samples (optionally freezing widths/shape), stacked comparison figures, quantification with editable RSFs.
-- **Export**: Origin `.opju` built from the bundled Ir-new style template (plus 4 colour themes); without Origin, data + a script for `run -pyf`; PNG/TIFF/SVG/PDF; Excel.
+- **Palettes**: 24 landscape palettes in 6 families (Waters: Glacier, Fjord, Lagoon, Abyss · Forests: Moss, Pinewood, Bamboo, Rainforest · Earth: Desert, Canyon, Loess, Badlands · Skies: Dawn, Dusk, Aurora, Twilight · Stone: Basalt, Granite, Slate, Highland · Fields: Lavender, Meadow, Autumn, Prairie), each tagged monochrome / contrast / soft / colour-blind safe; custom palettes can be saved. Default Glacier = the original Ir-new palette.
+- **Export**: Origin `.opju` built from the bundled Ir-new style template in the chosen palette; without Origin, data + a script for `run -pyf`; PNG/TIFF/SVG/PDF; Excel.
 - **Agent**: `peakforge mcp` exposes 20 MCP tools; the GUI reloads live when the agent edits the project.
 
 ## Install (Windows)

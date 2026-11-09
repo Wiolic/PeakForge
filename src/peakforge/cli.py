@@ -13,7 +13,7 @@
   peakforge diagnose <project> <key>
   peakforge batch <project> <source_key> [--fix fwhm eta]
   peakforge quant <project>
-  peakforge export <project> [--formats png xlsx origin] [--theme ir_blue] [--out DIR]
+  peakforge export <project> [--formats png xlsx origin] [--theme glacier] [--out DIR]
   peakforge mcp                           run the MCP server (stdio) for AI agents
   peakforge agent-config                  print MCP client configuration snippets
 """

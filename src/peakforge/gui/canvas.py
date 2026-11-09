@@ -33,12 +33,14 @@ class SpectrumView(QWidget):
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         lay = QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(self.toolbar)
+        self.toolbar.hide()                      # replaced by flat buttons in the card header
         lay.addWidget(self.canvas, 1)
-        gs = self.fig.add_gridspec(2, 1, height_ratios=[1, 5])
+        self.fig.get_layout_engine().set(h_pad=0.08, w_pad=0.12, hspace=0.02)
+        gs = self.fig.add_gridspec(2, 1, height_ratios=[1, 5.5])
         self.ax_r = self.fig.add_subplot(gs[0])
         self.ax = self.fig.add_subplot(gs[1], sharex=self.ax_r)
-        self.theme = "ir_blue"
+        self.theme = "glacier"
+        self.show_residual = True
         self.model: RegionModel | None = None
         self.prep: Prepared | None = None
         self.res: FitResult | None = None
@@ -65,7 +67,8 @@ class SpectrumView(QWidget):
         self.raw = None
         self.model = self.prep = self.res = None
         self.ax.clear(); self.ax_r.clear()
-        self.ax.text(0.5, 0.5, msg, ha="center", va="center", transform=self.ax.transAxes, color="0.4")
+        self.ax.text(0.5, 0.5, msg, ha="center", va="center", transform=self.ax.transAxes, color="#9AA1AC",
+                     fontsize=11)
         self.ax.set_axis_off(); self.ax_r.set_axis_off()
         self.canvas.draw_idle()
 
@@ -82,7 +85,7 @@ class SpectrumView(QWidget):
             self.canvas.draw_idle()
             return
         x, y = self.raw
-        ax.plot(x, y, "o", ms=3.5, mfc="none", mec=rgb01(th["data"]), mew=0.8, label="Measured", zorder=4)
+        ax.plot(x, y, "o", ms=3.6, mfc="white", mec=rgb01(th["data"]), mew=0.9, label="Measured", zorder=4)
         if self.res is not None and self.model is not None:
             r, m = self.res, self.model
             o = np.argsort(r.x)
@@ -93,47 +96,66 @@ class SpectrumView(QWidget):
                 if lines is None:
                     continue
                 tot = np.sum(lines, axis=0)[o]
-                ax.fill_between(xs, bg, bg + tot, color=col, alpha=th["fill_alpha"] + 0.1, lw=0,
+                ax.fill_between(xs, bg, bg + tot, color=col, alpha=min(th["fill_alpha"] + 0.12, 0.9), lw=0,
                                 label=label_mathtext(c.label or c.name))
-                ax.plot(xs, bg + tot, color=col, lw=1.0)
+                ax.plot(xs, bg + tot, color=col, lw=1.1)
                 # draggable marker at the main line's top
                 main = lines[0][o]
                 j = int(np.argmax(main))
-                mk, = ax.plot([xs[j]], [bg[j] + tot[j]], "D", ms=7, mfc=col, mec="k", mew=0.6, zorder=6,
+                mk, = ax.plot([xs[j]], [bg[j] + tot[j]], "o", ms=7.5, mfc=col, mec="white", mew=1.6, zorder=6,
                               picker=6)
                 self._markers[c.name] = (mk, xs[j], bg[j] + tot[j])
             ax.plot(xs, bg, color=rgb01(th["background"]), lw=1.4, label="Background")
             ax.plot(xs, r.envelope[o], color=rgb01(th["envelope"]), lw=1.6, label="Fit envelope")
-            axr.axhline(0, color="0.7", lw=0.8)
+            axr.axhline(0, color="#D3D6DD", lw=0.8)
+            axr.fill_between(xs, 0, r.residual[o], color=rgb01(th["envelope"]), alpha=0.18, lw=0)
             axr.plot(xs, r.residual[o], color=rgb01(th["envelope"]), lw=0.8)
-            axr.text(0.01, 0.9, f"{tr('rms')} {r.rms_pct:.2f} %", transform=axr.transAxes, va="top", fontsize=8,
-                     color="0.3")
+            axr.text(0.005, 0.95, f"{tr('residual')}  ·  RMS {r.rms_pct:.2f} %", transform=axr.transAxes,
+                     va="top", fontsize=8, color="#6B7280")
             b = m.background
             lo = b.lo if b.lo is not None else xs.min()
             hi = b.hi if b.hi is not None else xs.max()
-            self._bg_lines = (ax.axvline(lo, color="0.45", ls="--", lw=1, picker=5),
-                              ax.axvline(hi, color="0.45", ls="--", lw=1, picker=5))
+            self._bg_lines = (ax.axvline(lo, color="#9AA1AC", ls=(0, (4, 3)), lw=1, picker=5),
+                              ax.axvline(hi, color="#9AA1AC", ls=(0, (4, 3)), lw=1, picker=5))
             if m.fit_range:
                 a, b2 = sorted(m.fit_range)
-                ax.axvspan(x.min(), a, color="0.93", zorder=0)
-                ax.axvspan(b2, x.max(), color="0.93", zorder=0)
+                ax.axvspan(x.min(), a, color="#F3F4F6", zorder=0, lw=0)
+                ax.axvspan(b2, x.max(), color="#F3F4F6", zorder=0, lw=0)
         ax.set_yticks([])
         axr.set_yticks([])
-        for s in ("top", "right"):
-            ax.spines[s].set_visible(False)
-            axr.spines[s].set_visible(False)
-        axr.tick_params(labelbottom=False)
+        for a_ in (ax, axr):
+            for s in ("top", "right"):
+                a_.spines[s].set_visible(False)
+        axr.spines["left"].set_visible(False)
+        axr.spines["bottom"].set_color("#E4E6EB")
+        axr.tick_params(labelbottom=False, length=0)
+        axr.set_visible(self.show_residual and self.res is not None)
+        ax.tick_params(axis="x", length=4, width=0.8)
         ax.set_xlabel("Binding energy (eV)")
         ax.set_ylabel("Intensity (a.u.)")
-        ax.set_title(region_mathtext(self.title.split(" · ")[-1]) + "   " + " · ".join(self.title.split(" · ")[:-1]),
-                     loc="left", fontsize=10)
-        ax.legend(frameon=False, fontsize=8, loc="upper left")
+        ax.legend(frameon=False, fontsize=8.5, loc="upper left", handlelength=1.6, borderaxespad=0.2)
         if cur is not None:
             ax.set_xlim(cur)
         else:
             ax.set_xlim(x.max(), x.min())
             self._xlim = ax.get_xlim()
         self.canvas.draw_idle()
+
+    # ------------------------------------------------------------------ view controls
+    def view_home(self):
+        self._xlim = None
+        self.redraw()
+
+    def view_pan(self, on: bool):
+        if bool(self.toolbar.mode == "pan/zoom") != on:
+            self.toolbar.pan()
+
+    def view_zoom(self, on: bool):
+        if bool(self.toolbar.mode == "zoom rect") != on:
+            self.toolbar.zoom()
+
+    def view_save(self):
+        self.toolbar.save_figure()
 
     # ------------------------------------------------------------------ interaction
     def _hit_marker(self, ev):

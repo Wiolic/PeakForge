@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
 from PySide6.QtCore import Qt
 
 from ..export.origin import originpro_available
-from ..export.themes import THEMES
 from .i18n import lang, tr
 
 
@@ -29,10 +28,9 @@ class ExportDialog(QDialog):
             self.checks[fmt] = c
             row.addWidget(c)
         f.addRow(tr("formats"), row)
-        self.theme = QComboBox()
-        for k, t in THEMES.items():
-            self.theme.addItem(t["name_zh"] if lang() == "zh" else t["name_en"], k)
-        self.theme.setCurrentIndex(max(0, self.theme.findData(project.settings.get("theme", "ir_blue"))))
+        from .palette import PalettePicker
+        self.theme = PalettePicker()
+        self.theme.set_theme(project.settings.get("theme"))
         f.addRow(tr("theme"), self.theme)
         self.dpi = QSpinBox(); self.dpi.setRange(72, 1200); self.dpi.setValue(300)
         f.addRow("DPI", self.dpi)

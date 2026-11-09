@@ -13,12 +13,13 @@ from ..core import background as bgmod
 from ..core import lineshapes
 from ..core.model import RegionModel
 from .i18n import lang, tr
+from .style import icon
 
 
 def _fmt(v):
     if v is None or (isinstance(v, float) and not math.isfinite(v)):
         return ""
-    return f"{v:.6g}"
+    return f"{v:.5g}"
 
 
 def _num(text: str, default):
@@ -44,6 +45,8 @@ class ModelPanel(QWidget):
         self.project_dir = None
         self._busy = False
         lay = QVBoxLayout(self)
+        lay.setContentsMargins(14, 10, 14, 12)
+        lay.setSpacing(8)
 
         # preset
         row = QHBoxLayout()
@@ -56,7 +59,7 @@ class ModelPanel(QWidget):
         lay.addLayout(row)
         self.note = QLabel()
         self.note.setWordWrap(True)
-        self.note.setStyleSheet("color:#666;font-size:11px")
+        self.note.setObjectName("hint")
         lay.addWidget(self.note)
 
         # background
@@ -88,16 +91,22 @@ class ModelPanel(QWidget):
         self.comp_tab = QTableWidget(0, 5)
         self.comp_tab.setHorizontalHeaderLabels([tr("col_name"), tr("col_label"), tr("col_shape"),
                                                  tr("col_doublet"), tr("col_total")])
-        self.comp_tab.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        ch = self.comp_tab.horizontalHeader()
+        ch.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        for col in (3, 4):
+            ch.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         self.comp_tab.verticalHeader().setVisible(False)
+        self.comp_tab.setShowGrid(False)
+        self.comp_tab.setMinimumHeight(150)
         self.comp_tab.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.comp_tab.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.comp_tab.itemSelectionChanged.connect(self._fill_params)
         self.comp_tab.itemChanged.connect(self._comp_item_changed)
         vc.addWidget(self.comp_tab)
         rb = QHBoxLayout()
-        self.btn_add = QPushButton(tr("add"))
-        self.btn_del = QPushButton(tr("remove"))
+        self.btn_add = QPushButton(icon("plus"), tr("add"))
+        self.btn_del = QPushButton(icon("trash"), tr("remove"))
+        self.btn_add.setObjectName("ghost"); self.btn_del.setObjectName("ghost")
         rb.addWidget(self.btn_add); rb.addWidget(self.btn_del); rb.addStretch(1)
         vc.addLayout(rb)
         self.btn_add.clicked.connect(self._add_comp)
@@ -110,8 +119,14 @@ class ModelPanel(QWidget):
         self.par_tab = QTableWidget(0, 7)
         self.par_tab.setHorizontalHeaderLabels([tr("col_param"), tr("col_value"), tr("col_min"), tr("col_max"),
                                                 tr("col_vary"), tr("col_expr"), tr("col_err")])
-        self.par_tab.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        hh = self.par_tab.horizontalHeader()
+        hh.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        for col in (0, 4, 6):
+            hh.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
         self.par_tab.verticalHeader().setVisible(False)
+        self.par_tab.setShowGrid(False)
+        self.par_tab.setAlternatingRowColors(True)
+        self.par_tab.setMinimumHeight(200)
         self.par_tab.itemChanged.connect(self._par_item_changed)
         vp.addWidget(self.par_tab)
         lay.addWidget(gp, 3)
@@ -120,8 +135,9 @@ class ModelPanel(QWidget):
         rf = QHBoxLayout()
         self.starts = QSpinBox(); self.starts.setRange(1, 50); self.starts.setValue(3)
         self.btn_fit = QPushButton(tr("fit"))
-        self.btn_fit.setStyleSheet("font-weight:bold;padding:6px 18px")
-        self.btn_diag = QPushButton(tr("diagnose"))
+        self.btn_fit.setObjectName("primary")
+        self.btn_fit.setIcon(icon("play", "#FFFFFF"))
+        self.btn_diag = QPushButton(icon("pulse"), tr("diagnose"))
         rf.addWidget(QLabel(tr("starts"))); rf.addWidget(self.starts)
         rf.addStretch(1); rf.addWidget(self.btn_diag); rf.addWidget(self.btn_fit)
         self.btn_fit.clicked.connect(lambda: self.fit_requested.emit(self.starts.value()))

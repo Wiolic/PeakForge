@@ -68,7 +68,7 @@ class Project:
         if os.path.exists(path):
             return cls.open(path)
         data = dict(format="peakforge-project", version=__version__, name=name, created=_now(),
-                    modified=_now(), settings=dict(charge_ref=284.8, lang="zh", theme="ir_blue"),
+                    modified=_now(), settings=dict(charge_ref=284.8, lang="zh", theme="glacier"),
                     files=[], samples={})
         p = cls(path, data)
         p.save()

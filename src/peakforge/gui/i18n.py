@@ -55,6 +55,14 @@ T = {
     "set_bg_lo": ("背景低端设为 {x:.2f} eV", "Set background low end to {x:.2f} eV"),
     "set_bg_hi": ("背景高端设为 {x:.2f} eV", "Set background high end to {x:.2f} eV"),
     "remove_comp": ("删除组分 {n}", "Remove component {n}"),
+    "palette": ("配色", "Palette"), "palette_new": ("＋ 新建自定义配色…", "+ New custom palette…"),
+    "fill_alpha": ("填充不透明度", "Fill opacity"), "inspector": ("分峰模型", "Peak model"),
+    "samples": ("样品与谱区", "Samples & regions"), "view_reset": ("复位视图", "Reset view"),
+    "view_pan": ("平移", "Pan"), "view_zoom": ("框选放大", "Zoom to box"), "view_save": ("保存图片", "Save image"),
+    "empty_title": ("开始一个分析", "Start an analysis"),
+    "empty_body": ("新建或打开一个工程，然后导入 .spe / .vms / .csv / .xlsx 数据。",
+                   "Create or open a project, then import .spe / .vms / .csv / .xlsx data."),
+    "agent": ("Agent", "Agent"), "show_residual": ("残差", "Residual"),
     "rsf": ("灵敏度因子 RSF", "RSF"), "at_pct": ("原子 %", "Atomic %"),
     "agent_text": ("在 Claude Code 等 Agent 中注册 PeakForge MCP 服务器后，可以用自然语言让它分析当前工程；"
                    "GUI 会自动显示 Agent 的修改。", "Register the PeakForge MCP server in your agent "
