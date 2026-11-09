@@ -94,9 +94,22 @@ def build(spec: dict, op=None, show: bool = False):
         y = df.iloc[:, mask].to_numpy()
         ymin, ymax = float(y.min()), float(y.max())
         span = ymax - ymin
-        step = 5 if hi - lo > 12 else 2
+        step = 5 if hi - lo > 9 else 2
+        # legend (top-left) and region/sample label (bottom-left) must stay clear of the data on the
+        # high-BE (left) side: solve top and bottom limits together, as in the PNG renderer
+        xcol = df.iloc[:, 0].to_numpy()
+        left = xcol >= hi - 0.47 * (hi - lo)
+        yl = y[left] if left.any() else y
+        top_left, bot_left = float(yl.max()), float(yl.min())
+        n_comp = sum(1 for c in g["columns"] if c["role"] == "comp")
+        f_leg = min(0.75, 0.068 * (3 + n_comp) + 0.05)
+        f_lab = 0.24
+        y_lo, y_hi = ymin - 0.32 * span, ymax + 0.08 * span
+        for _ in range(3):
+            y_hi = max(ymax + 0.08 * span, y_lo + (top_left - y_lo) / (1 - f_leg))
+            y_lo = min(ymin - 0.05 * span, bot_left - f_lab * (y_hi - y_lo))
         lay.lt_exec(f"layer.x.from={hi}; layer.x.to={lo}; layer.x.inc={step};"
-                    f"layer.y.from={ymin - 0.32 * span}; layer.y.to={ymax + 0.55 * span};")
+                    f"layer.y.from={y_lo}; layer.y.to={y_hi};")
 
         entries = [f"\\l({i_m}) {g['legend'][0]}", f"\\l({i_b}) {g['legend'][1]}",
                    f"\\l({i_e}) {g['legend'][2]}"]

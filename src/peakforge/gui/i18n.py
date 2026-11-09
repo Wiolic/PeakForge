@@ -63,6 +63,13 @@ T = {
     "empty_body": ("新建或打开一个工程，然后导入 .spe / .vms / .csv / .xlsx 数据。",
                    "Create or open a project, then import .spe / .vms / .csv / .xlsx data."),
     "agent": ("Agent", "Agent"), "show_residual": ("残差", "Residual"),
+    "agent_step1": ("① 选择要让 AI 分析的数据文件夹", "① Choose the data folder the AI should work in"),
+    "agent_connect_btn": ("一键连接 AI 到这个文件夹", "Connect AI to this folder"),
+    "agent_step2": ("② 在 Claude 桌面版的 Code 标签里打开这个文件夹，提示是否启用 “peakforge” 时选择允许；"
+                    "③ 用中文告诉它要做什么。",
+                    "② Open this folder in the Claude desktop app (Code tab) and allow the “peakforge” server "
+                    "when asked; ③ tell it what to do in plain language."),
+    "agent_advanced": ("高级：手动配置（会用命令行时）", "Advanced: manual configuration"),
     "disclaimer": ("免责声明", "Disclaimer"), "disclaimer_ok": ("我已了解", "I understand"),
     "disclaimer_short": ("结果请与 CasaXPS / Avantage / MultiPak 比对", "Cross-check results with CasaXPS / Avantage / MultiPak"),
     "set_region": ("指定元素与能级…", "Assign element / core level…"),

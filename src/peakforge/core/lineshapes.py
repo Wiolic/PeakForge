@@ -59,7 +59,9 @@ def _numeric_profile(shape: str, fwhm: float, a: float, b: float, c: float):
         y = (1 - m) * np.exp(-4 * LN2 * u ** 2 / w ** 2) + m / (1 + 4 * u ** 2 / w ** 2)
     elif shape == "ds":
         alpha, gam = a, max(b, 1e-3) / 2.0
-        t = u  # positive u = higher BE = tail side
+        # DS(ε) = cos[πα/2 + (1−α)·atan(ε/γ)] / (γ²+ε²)^((1−α)/2) has its tail at NEGATIVE ε
+        # (ε = kinetic-energy offset). Higher BE = lower KE, so ε = −u puts the tail at higher BE.
+        t = -u
         y = np.cos(np.pi * alpha / 2 + (1 - alpha) * np.arctan(t / gam)) / \
             (gam ** 2 + t ** 2) ** ((1 - alpha) / 2)
         y = np.clip(y, 0, None)

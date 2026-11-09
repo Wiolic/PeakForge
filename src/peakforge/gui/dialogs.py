@@ -92,28 +92,56 @@ class BatchDialog(QDialog):
 
 
 class AgentDialog(QDialog):
+    """Connect an AI agent. Main path for non-programmers: pick the data folder -> PeakForge writes
+    .mcp.json + AGENTS.md there -> open that folder in the Claude desktop app's Code tab."""
+
     def __init__(self, project, parent=None):
         super().__init__(parent)
-        from ..agent import config_snippets, write_agents_md
+        from ..agent import config_snippets, connect_folder
         self.setWindowTitle(tr("agent_connect"))
-        self.resize(720, 480)
+        self.resize(760, 560)
         lay = QVBoxLayout(self)
+        lay.setSpacing(10)
         t = QLabel(tr("agent_text")); t.setWordWrap(True)
         lay.addWidget(t)
+
+        step = QLabel(tr("agent_step1")); step.setObjectName("cardTitle"); step.setWordWrap(True)
+        lay.addWidget(step)
+        row = QHBoxLayout()
+        self.folder = QLineEdit(project.root if project is not None else "")
+        pick = QPushButton(tr("choose"))
+        pick.clicked.connect(lambda: self.folder.setText(
+            QFileDialog.getExistingDirectory(self, tr("agent_step1"), self.folder.text()) or self.folder.text()))
+        row.addWidget(self.folder, 1); row.addWidget(pick)
+        lay.addLayout(row)
+        go = QPushButton(tr("agent_connect_btn")); go.setObjectName("primary")
+        self.result = QLabel(""); self.result.setWordWrap(True); self.result.setObjectName("hint")
+        self.result.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        def do_connect():
+            f = self.folder.text().strip()
+            if not f:
+                return
+            out = connect_folder(f)
+            self.result.setText(f"✓ {out['mcp_json']}\n✓ {out['agents_md']}\n\n{tr('agent_step2')}")
+        go.clicked.connect(do_connect)
+        lay.addWidget(go)
+        lay.addWidget(self.result)
+
+        adv = QLabel(tr("agent_advanced")); adv.setObjectName("sectionTitle")
+        lay.addWidget(adv)
         cfg = config_snippets()
-        for title, text in (("Claude Code", cfg["claude_code_cli"]),
+        for title, text in (("Claude Code (terminal)", cfg["claude_code_cli"]),
                             (".mcp.json / Cursor / Claude Desktop", json.dumps(cfg["mcp_json"], indent=2)),
                             ("Codex (~/.codex/config.toml)", cfg["codex_toml"])):
-            lay.addWidget(QLabel(f"<b>{title}</b>"))
-            box = QPlainTextEdit(text); box.setReadOnly(True); box.setMaximumHeight(110)
+            r2 = QHBoxLayout()
+            lab = QLabel(f"<b>{title}</b>")
+            b = QPushButton(tr("copy")); b.setObjectName("ghost")
+            b.clicked.connect(lambda _=False, s=text: QGuiApplication.clipboard().setText(s))
+            r2.addWidget(lab); r2.addStretch(1); r2.addWidget(b)
+            lay.addLayout(r2)
+            box = QPlainTextEdit(text); box.setReadOnly(True); box.setMaximumHeight(70)
             lay.addWidget(box)
-            b = QPushButton(tr("copy")); b.clicked.connect(lambda _=False, s=text: QGuiApplication.clipboard().setText(s))
-            lay.addWidget(b)
-        if project is not None:
-            lay.addWidget(QLabel(f"PEAKFORGE_PROJECT = {project.path}"))
-            b2 = QPushButton(tr("agent_md"))
-            b2.clicked.connect(lambda: b2.setText("✓ " + write_agents_md(project.root)))
-            lay.addWidget(b2)
         bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         bb.rejected.connect(self.reject)
         lay.addWidget(bb)

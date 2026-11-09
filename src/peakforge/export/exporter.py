@@ -7,7 +7,7 @@ import re
 import pandas as pd
 
 from .curves import component_table, curve_table
-from .figure import save_fit_figure, save_stack_figure
+from .figure import save_fit_figure, save_panel_figure, save_stack_figure
 from .origin import export_origin
 
 
@@ -87,6 +87,16 @@ def export_all(project, keys=None, out_dir: str | None = None, theme: str | None
                 p = os.path.join(out_dir, "figures", "compare_" + _safe(reg) + "." + figs[0])
                 save_stack_figure(p, its, theme, reg, dpi=dpi)
                 res["figures"].append(p)
+    if figs and len(items) > 1:
+        # combined publication figure: rows = regions, columns = samples, panels (a), (b), …
+        regions = list(dict.fromkeys(reg for _k, _s, reg, _m, _r in items))
+        samples = list(dict.fromkeys(smp for _k, smp, _reg, _m, _r in items))
+        grid = {(reg, smp): (m, r) for _k, smp, reg, m, r in items}
+        panels = [dict(model=grid[(reg, smp)][0], result=grid[(reg, smp)][1], theme=theme, region=reg,
+                       sample=smp) for reg in regions for smp in samples if (reg, smp) in grid]
+        p = os.path.join(out_dir, "figures", "combined." + figs[0])
+        save_panel_figure(p, panels, ncols=min(len(samples), 3), dpi=dpi)
+        res["figures"].append(p)
     if "xlsx" in formats:
         res["xlsx"] = export_excel(project, os.path.join(out_dir, _safe(project.name) + "_results.xlsx"), keys)
     if "origin" in formats and items:

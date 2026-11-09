@@ -27,6 +27,18 @@ def test_unit_area(shape, kw):
     assert abs(np.trapezoid(y, x) - 1) < tol
 
 
+@pytest.mark.parametrize("shape,kw", [("ds", {"alpha": 0.15, "gamma": 0.4}),
+                                      ("la", {"alpha": 1.2, "beta": 3.0, "gw": 0.3})])
+def test_asymmetric_tail_towards_higher_binding_energy(shape, kw):
+    """Metallic (DS / LA) asymmetry must extend to HIGHER BE (lower kinetic energy)."""
+    x = np.linspace(40, 80, 40001)
+    y = lineshapes.profile(shape, x, 60.0, 0.6, **kw)
+    peak = x[np.argmax(y)]
+    hi = np.trapezoid(y[x > peak + 2], x[x > peak + 2])
+    lo = np.trapezoid(y[x < peak - 2], x[x < peak - 2])
+    assert hi > 3 * lo
+
+
 def _synthetic(seed=1):
     rng = np.random.default_rng(seed)
     x = np.linspace(55, 75, 401)
