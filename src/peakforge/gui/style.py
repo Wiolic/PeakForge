@@ -29,6 +29,7 @@ QMenu::separator {{ height: 1px; background: {C['border']}; margin: 5px 8px; }}
 
 QFrame#topbar {{ background: {C['card']}; border-bottom: 1px solid {C['border']}; }}
 QLabel#brand {{ font-size: 11.5pt; font-weight: 600; }}
+QLabel#credit {{ color: {C['accent_text']}; font-size: 8pt; font-weight: 600; }}
 QLabel#brandSub {{ color: {C['muted']}; }}
 QFrame#card {{ background: {C['card']}; border: 1px solid {C['border']}; border-radius: 10px; }}
 QLabel#cardTitle {{ font-weight: 600; font-size: 10pt; }}

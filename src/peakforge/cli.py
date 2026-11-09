@@ -32,7 +32,7 @@ def _print(o):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(prog="peakforge", description="PeakForge 锻峰 — XPS analysis")
+    ap = argparse.ArgumentParser(prog="peakforge", description="PeakForge — XPS analysis. Developed by Eggy & Claude Opus 5.5")
     ap.add_argument("--version", action="version", version=f"PeakForge {__version__}")
     sub = ap.add_subparsers(dest="cmd")
 

@@ -63,6 +63,9 @@ T = {
     "empty_body": ("新建或打开一个工程，然后导入 .spe / .vms / .csv / .xlsx 数据。",
                    "Create or open a project, then import .spe / .vms / .csv / .xlsx data."),
     "agent": ("Agent", "Agent"), "show_residual": ("残差", "Residual"),
+    "disclaimer": ("免责声明", "Disclaimer"), "disclaimer_ok": ("我已了解", "I understand"),
+    "disclaimer_short": ("结果请与 CasaXPS / Avantage / MultiPak 比对", "Cross-check results with CasaXPS / Avantage / MultiPak"),
+    "set_region": ("指定元素与能级…", "Assign element / core level…"),
     "rsf": ("灵敏度因子 RSF", "RSF"), "at_pct": ("原子 %", "Atomic %"),
     "agent_text": ("在 Claude Code 等 Agent 中注册 PeakForge MCP 服务器后，可以用自然语言让它分析当前工程；"
                    "GUI 会自动显示 Agent 的修改。", "Register the PeakForge MCP server in your agent "

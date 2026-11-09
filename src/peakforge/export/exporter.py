@@ -48,6 +48,11 @@ def export_excel(project, path: str, keys=None) -> str:
                                 "Area": e["area"], "Area source": e["area_source"], "RSF": e.get("rsf"),
                                 "Atomic %": e.get("at_pct")} for e in q])
             qd.round(4).to_excel(w, sheet_name="Quantification", index=False)
+        from .. import CREDIT, DISCLAIMER_EN, DISCLAIMER_ZH, __version__
+        pd.DataFrame({"Item": ["Software", "Credit", "Project", "Charge reference (eV)", "Disclaimer", "免责声明"],
+                      "Value": [f"PeakForge {__version__}", CREDIT, project.name,
+                                project.settings.get("charge_ref", 284.8), DISCLAIMER_EN, DISCLAIMER_ZH]}
+                     ).to_excel(w, sheet_name="About", index=False)
         used = set()
         for k, smp, reg, m, r in items:
             df, _ = curve_table(m, r)

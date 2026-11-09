@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QHeaderView, QI
                                QTableWidgetItem, QTabWidget, QToolButton, QTreeWidget, QTreeWidgetItem,
                                QVBoxLayout, QWidget)
 
-from .. import APP_NAME, APP_NAME_ZH, __version__, presets
+from .. import APP_NAME, CREDIT, DISCLAIMER_EN, DISCLAIMER_ZH, __version__, presets
 from ..core.diagnostics import diagnose
 from ..core.fit import fit as run_fit
 from ..core.model import Component, Param, RegionModel
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
         self.redo: dict[str, list] = {}
         self._own_write = 0.0
         self._busy = 0
-        self.setWindowTitle(f"{APP_NAME} {APP_NAME_ZH} {__version__}")
+        self.setWindowTitle(f"{APP_NAME} {__version__}")
         if os.path.exists(ICON):
             self.setWindowIcon(QIcon(ICON))
         self.resize(1500, 900)
@@ -83,8 +83,13 @@ class MainWindow(QMainWindow):
         if os.path.exists(ICON):
             logo.setPixmap(QIcon(ICON).pixmap(26, 26))
         brand = QLabel(APP_NAME); brand.setObjectName("brand")
-        self.brand_sub = QLabel(APP_NAME_ZH); self.brand_sub.setObjectName("brandSub")
-        tl.addWidget(logo); tl.addSpacing(4); tl.addWidget(brand); tl.addWidget(self.brand_sub); tl.addSpacing(18)
+        credit = QLabel(CREDIT); credit.setObjectName("credit")
+        bcol = QVBoxLayout(); bcol.setSpacing(0); bcol.setContentsMargins(0, 0, 0, 0)
+        brow = QHBoxLayout(); brow.setSpacing(6)
+        self.brand_sub = QLabel(""); self.brand_sub.setObjectName("brandSub")
+        brow.addWidget(brand); brow.addWidget(self.brand_sub); brow.addStretch(1)
+        bcol.addLayout(brow); bcol.addWidget(credit)
+        tl.addWidget(logo); tl.addSpacing(6); tl.addLayout(bcol); tl.addSpacing(22)
         self.panel = ModelPanel()
         self.tool = {}
         for key, ic, text, slot, primary in (
@@ -205,6 +210,9 @@ class MainWindow(QMainWindow):
 
         self.metric_lbl = QLabel(""); self.metric_lbl.setObjectName("metric")
         self.statusBar().addPermanentWidget(self.metric_lbl)
+        cr = QLabel(f"{CREDIT}   ·   {tr('disclaimer_short')}  "); cr.setObjectName("hint")
+        cr.setToolTip(DISCLAIMER_ZH if i18n.lang() == "zh" else DISCLAIMER_EN)
+        self.statusBar().addPermanentWidget(cr)
 
         self.watcher = QFileSystemWatcher(self)
         self.watcher.fileChanged.connect(self._fs_changed)
@@ -266,6 +274,7 @@ class MainWindow(QMainWindow):
         m = mb.addMenu(tr("menu_agent"))
         self._act(m, tr("agent_connect"), lambda: AgentDialog(self.project, self).exec())
         m = mb.addMenu(tr("menu_help"))
+        self._act(m, tr("disclaimer"), lambda: self.show_disclaimer(True))
         self._act(m, tr("about"), self.about)
 
 
@@ -320,14 +329,15 @@ class MainWindow(QMainWindow):
             self.fail(str(e))
             return
         self._remember(self.project.path)
-        self.setWindowTitle(f"{APP_NAME} {APP_NAME_ZH} — {self.project.name}")
+        self.setWindowTitle(f"{APP_NAME} — {self.project.name}")
         th = theme_id(self.project.settings.get("theme"))
         self.view.theme = th
         self.palette.set_theme(th)
-        self.brand_sub.setText(f"{APP_NAME_ZH}   ·   {self.project.name}")
+        self.brand_sub.setText(f"·   {self.project.name}")
         self._watch()
         self.refresh_tree()
-        self.say(f"{self.project.path}: {len(self.project.spectra)} spectra")
+        self.log.appendPlainText(time.strftime("%H:%M:%S  ") + self.project.path)
+        self.statusBar().showMessage(f"{self.project.name}: {len(self.project.spectra)} spectra", 4000)
 
     def _watch(self):
         for p in self.watcher.files() + self.watcher.directories():
@@ -436,10 +446,29 @@ class MainWindow(QMainWindow):
         kind, val = it.data(0, Qt.ItemDataRole.UserRole)
         smp = val if kind == "sample" else self.project.spectra[val].sample
         m = QMenu(self)
+        if kind == "spec":
+            m.addAction(tr("set_region"), lambda: self.assign_region(val))
+            m.addSeparator()
         m.addAction(tr("set_shift"), lambda: self.set_shift(smp))
         m.addAction(tr("rename_sample"), lambda: self.rename_sample(smp))
         m.addAction(tr("remove_sample"), lambda: self.remove_sample(smp))
         m.exec(self.tree.viewport().mapToGlobal(pos))
+
+    def assign_region(self, key):
+        """Pick the element / core level for a spectrum (any element Li–U, or a single sub-level)."""
+        choices = presets.orbital_choices()
+        labels = [d for _k, d in choices]
+        cur = self.project.spectra[key].region
+        idx = next((i for i, (k, _d) in enumerate(choices) if k == cur), 0)
+        txt, ok = QInputDialog.getItem(self, tr("set_region"),
+                                       "Fe 2p · Fe 2p3/2 · Ce 3d …", labels, idx, True)
+        if not ok or not txt.strip():
+            return
+        region = next((k for k, d in choices if d == txt), txt.strip())
+        self._mark_write()
+        new = self.project.set_region(key, region)
+        self.say(f"{key} → {new}")
+        self.refresh_tree(select=new)
 
     def rename_sample(self, smp):
         t, ok = QInputDialog.getText(self, tr("rename_sample"), tr("label_sample"), text=self.project.sample_label(smp))
@@ -853,7 +882,25 @@ class MainWindow(QMainWindow):
             self.restart_cb(self.project.path if self.project else None)
 
     def about(self):
-        QMessageBox.about(self, APP_NAME, f"<h3>{APP_NAME} {APP_NAME_ZH} {__version__}</h3>"
-                          "<p>XPS analysis · SPE/VMS/CSV/Excel · peak fitting with constraints · "
-                          "diagnostics · Origin export · MCP agent interface.</p>"
+        disc = DISCLAIMER_ZH if i18n.lang() == "zh" else DISCLAIMER_EN
+        QMessageBox.about(self, APP_NAME, f"<h2 style='margin-bottom:2px'>{APP_NAME} {__version__}</h2>"
+                          f"<p style='color:#2F6BDF;font-weight:600;margin-top:0'>{CREDIT}</p>"
+                          "<p>XPS analysis · SPE/VMS/CSV/Excel · constrained peak fitting for all elements "
+                          "Li–U · diagnostics · Origin export · MCP agent interface.</p>"
+                          f"<p style='color:#6B7280'><b>{tr('disclaimer')}</b><br>{disc}</p>"
                           "<p>MIT License · <a href='https://github.com/Wiolic/PeakForge'>github.com/Wiolic/PeakForge</a></p>")
+
+    def show_disclaimer(self, force: bool = False):
+        """Shown once per version on first start (and from Help menu)."""
+        key = f"disclaimer_ack_{__version__}"
+        if not force and i18n.settings().get(key):
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle(tr("disclaimer"))
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText(f"<b>{APP_NAME}</b> · {CREDIT}")
+        box.setInformativeText(DISCLAIMER_ZH if i18n.lang() == "zh" else DISCLAIMER_EN)
+        box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        box.button(QMessageBox.StandardButton.Ok).setText(tr("disclaimer_ok"))
+        box.exec()
+        i18n.save_setting(key, True)

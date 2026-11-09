@@ -1,497 +1,2331 @@
 {
- "_note": "be: typical BE (eV) of the main line; split: spin-orbit splitting (eV); ratio: area(high-j-1)/area(main). rsf: approximate Scofield cross-section (Al Ka, C 1s = 1, whole subshell) for rough quantification only — replace with your instrument's RSF library (e.g. PHI MultiPak) for real work. null = not tabulated, enter in the GUI.",
+ "_note": "Core levels for every element Li–U (H, He: no practical XPS core level). be: typical BE (eV) of the main (high-j, lower-BE) component; split: spin–orbit splitting (eV); ratio: area of the low-j partner / main; complex: multiplet/shake-up dominated, generic model uses free singlets. Approximate handbook values — seeds for fitting, not reference data. rsf: approximate Scofield cross-sections (Al Kα, C 1s = 1) for rough quantification only — use your instrument's RSFs.",
  "orbitals": {
-  "C 1s": {
-   "be": 284.8,
+  "Li 1s": {
+   "z": 3,
+   "element": "Li",
+   "level": "1s",
+   "be": 54.7,
+   "rsf": null,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": 1.0
+   "main": true
+  },
+  "Be 1s": {
+   "z": 4,
+   "element": "Be",
+   "level": "1s",
+   "be": 111.8,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": true
+  },
+  "B 1s": {
+   "z": 5,
+   "element": "B",
+   "level": "1s",
+   "be": 188.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": true
+  },
+  "C 1s": {
+   "z": 6,
+   "element": "C",
+   "level": "1s",
+   "be": 284.8,
+   "rsf": 1.0,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": true
   },
   "N 1s": {
-   "be": 400.0,
+   "z": 7,
+   "element": "N",
+   "level": "1s",
+   "be": 399.8,
+   "rsf": 1.8,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": 1.8
+   "main": true
   },
   "O 1s": {
+   "z": 8,
+   "element": "O",
+   "level": "1s",
    "be": 531.0,
+   "rsf": 2.93,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": 2.93
+   "main": true
+  },
+  "O 2s": {
+   "z": 8,
+   "element": "O",
+   "level": "2s",
+   "be": 23.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "F 1s": {
+   "z": 9,
+   "element": "F",
+   "level": "1s",
    "be": 685.0,
+   "rsf": 4.43,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": 4.43
+   "main": true
+  },
+  "F 2s": {
+   "z": 9,
+   "element": "F",
+   "level": "2s",
+   "be": 30.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
+  },
+  "Ne 1s": {
+   "z": 10,
+   "element": "Ne",
+   "level": "1s",
+   "be": 863.1,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": true
   },
   "Na 1s": {
-   "be": 1071.5,
+   "z": 11,
+   "element": "Na",
+   "level": "1s",
+   "be": 1071.8,
+   "rsf": 8.52,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": 8.52
+   "main": true
+  },
+  "Na 2p": {
+   "z": 11,
+   "element": "Na",
+   "level": "2p",
+   "be": 30.8,
+   "rsf": null,
+   "split": 0.17,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "main": false
+  },
+  "Na 2s": {
+   "z": 11,
+   "element": "Na",
+   "level": "2s",
+   "be": 63.6,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
+  },
+  "Mg 1s": {
+   "z": 12,
+   "element": "Mg",
+   "level": "1s",
+   "be": 1303.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": true
+  },
+  "Mg 2p": {
+   "z": 12,
+   "element": "Mg",
+   "level": "2p",
+   "be": 49.8,
+   "rsf": null,
+   "split": 0.28,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "main": false
+  },
+  "Mg 2s": {
+   "z": 12,
+   "element": "Mg",
+   "level": "2s",
+   "be": 88.6,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "Al 2p": {
+   "z": 13,
+   "element": "Al",
+   "level": "2p",
    "be": 72.9,
+   "rsf": 0.537,
    "split": 0.44,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 0.537
+   "main": true
+  },
+  "Al 2s": {
+   "z": 13,
+   "element": "Al",
+   "level": "2s",
+   "be": 117.9,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "Si 2p": {
+   "z": 14,
+   "element": "Si",
+   "level": "2p",
    "be": 99.4,
+   "rsf": 0.817,
    "split": 0.61,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 0.817
+   "main": true
+  },
+  "Si 2s": {
+   "z": 14,
+   "element": "Si",
+   "level": "2s",
+   "be": 150.5,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "P 2p": {
+   "z": 15,
+   "element": "P",
+   "level": "2p",
    "be": 130.0,
+   "rsf": 1.19,
    "split": 0.84,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 1.19
+   "main": true
+  },
+  "P 2s": {
+   "z": 15,
+   "element": "P",
+   "level": "2s",
+   "be": 189.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "S 2p": {
+   "z": 16,
+   "element": "S",
+   "level": "2p",
    "be": 164.0,
+   "rsf": 1.68,
    "split": 1.18,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 1.68
+   "main": true
+  },
+  "S 2s": {
+   "z": 16,
+   "element": "S",
+   "level": "2s",
+   "be": 228.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "Cl 2p": {
+   "z": 17,
+   "element": "Cl",
+   "level": "2p",
    "be": 199.0,
+   "rsf": 2.29,
    "split": 1.6,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 2.29
+   "main": true
+  },
+  "Cl 2s": {
+   "z": 17,
+   "element": "Cl",
+   "level": "2s",
+   "be": 270.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
+  },
+  "Ar 2p": {
+   "z": 18,
+   "element": "Ar",
+   "level": "2p",
+   "be": 241.9,
+   "rsf": null,
+   "split": 2.15,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "main": true
   },
   "K 2p": {
+   "z": 19,
+   "element": "K",
+   "level": "2p",
    "be": 293.0,
+   "rsf": 3.97,
    "split": 2.8,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 3.97
+   "main": true
   },
-  "K 2s": {
-   "be": 377.0,
+  "K 3p": {
+   "z": 19,
+   "element": "K",
+   "level": "3p",
+   "be": 18.0,
+   "rsf": null,
+   "split": 0.25,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "K 3s": {
+   "z": 19,
+   "element": "K",
+   "level": "3s",
+   "be": 33.6,
+   "rsf": null,
    "split": null,
    "ratio": null,
    "sub": null,
-   "rsf": null
+   "main": false
+  },
+  "K 2s": {
+   "z": 19,
+   "element": "K",
+   "level": "2s",
+   "be": 377.1,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "Ca 2p": {
+   "z": 20,
+   "element": "Ca",
+   "level": "2p",
    "be": 347.0,
+   "rsf": 5.07,
    "split": 3.55,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 5.07
+   "main": true
+  },
+  "Ca 3p": {
+   "z": 20,
+   "element": "Ca",
+   "level": "3p",
+   "be": 25.4,
+   "rsf": null,
+   "split": 0.3,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Ca 2s": {
+   "z": 20,
+   "element": "Ca",
+   "level": "2s",
+   "be": 438.4,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
+  },
+  "Sc 2p": {
+   "z": 21,
+   "element": "Sc",
+   "level": "2p",
+   "be": 398.5,
+   "rsf": null,
+   "split": 4.9,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "main": true
+  },
+  "Sc 3p": {
+   "z": 21,
+   "element": "Sc",
+   "level": "3p",
+   "be": 28.5,
+   "rsf": null,
+   "split": 0.4,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Ti 2p": {
-   "be": 458.8,
-   "split": 5.7,
+   "z": 22,
+   "element": "Ti",
+   "level": "2p",
+   "be": 453.9,
+   "rsf": 7.81,
+   "split": 6.1,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 7.81
+   "main": true
+  },
+  "Ti 3p": {
+   "z": 22,
+   "element": "Ti",
+   "level": "3p",
+   "be": 32.6,
+   "rsf": null,
+   "split": 0.5,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "V 2p": {
-   "be": 516.5,
-   "split": 7.4,
+   "z": 23,
+   "element": "V",
+   "level": "2p",
+   "be": 512.2,
+   "rsf": null,
+   "split": 7.6,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "V 3p": {
+   "z": 23,
+   "element": "V",
+   "level": "3p",
+   "be": 37.2,
+   "rsf": null,
+   "split": 0.6,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Cr 2p": {
+   "z": 24,
+   "element": "Cr",
+   "level": "2p",
    "be": 574.2,
+   "rsf": 11.7,
    "split": 9.3,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 11.7
+   "complex": true,
+   "main": true
+  },
+  "Cr 3p": {
+   "z": 24,
+   "element": "Cr",
+   "level": "3p",
+   "be": 42.2,
+   "rsf": null,
+   "split": 0.8,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Mn 2p": {
-   "be": 641.0,
-   "split": 11.6,
+   "z": 25,
+   "element": "Mn",
+   "level": "2p",
+   "be": 638.7,
+   "rsf": 13.9,
+   "split": 11.2,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 13.9
+   "complex": true,
+   "main": true
+  },
+  "Mn 3p": {
+   "z": 25,
+   "element": "Mn",
+   "level": "3p",
+   "be": 47.4,
+   "rsf": null,
+   "split": 1.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Mn 3s": {
+   "z": 25,
+   "element": "Mn",
+   "level": "3s",
+   "be": 82.0,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "complex": true,
+   "main": false
   },
   "Fe 2p": {
-   "be": 707.0,
+   "z": 26,
+   "element": "Fe",
+   "level": "2p",
+   "be": 706.7,
+   "rsf": 16.4,
    "split": 13.1,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 16.4
+   "complex": true,
+   "main": true
+  },
+  "Fe 3p": {
+   "z": 26,
+   "element": "Fe",
+   "level": "3p",
+   "be": 52.9,
+   "rsf": null,
+   "split": 1.2,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Co 2p": {
-   "be": 778.2,
+   "z": 27,
+   "element": "Co",
+   "level": "2p",
+   "be": 778.1,
+   "rsf": 19.2,
    "split": 15.0,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 19.2
+   "complex": true,
+   "main": true
+  },
+  "Co 3p": {
+   "z": 27,
+   "element": "Co",
+   "level": "3p",
+   "be": 59.3,
+   "rsf": null,
+   "split": 1.5,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Ni 2p": {
+   "z": 28,
+   "element": "Ni",
+   "level": "2p",
    "be": 852.6,
+   "rsf": 22.2,
    "split": 17.3,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 22.2
+   "complex": true,
+   "main": true
+  },
+  "Ni 3p": {
+   "z": 28,
+   "element": "Ni",
+   "level": "3p",
+   "be": 66.2,
+   "rsf": null,
+   "split": 1.8,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Cu 2p": {
+   "z": 29,
+   "element": "Cu",
+   "level": "2p",
    "be": 932.6,
+   "rsf": 25.4,
    "split": 19.8,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 25.4
+   "main": true
+  },
+  "Cu 3p": {
+   "z": 29,
+   "element": "Cu",
+   "level": "3p",
+   "be": 75.1,
+   "rsf": null,
+   "split": 2.4,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Cu 3s": {
+   "z": 29,
+   "element": "Cu",
+   "level": "3s",
+   "be": 122.5,
+   "rsf": null,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "main": false
   },
   "Zn 2p": {
+   "z": 30,
+   "element": "Zn",
+   "level": "2p",
    "be": 1021.8,
+   "rsf": 28.8,
    "split": 23.1,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": 28.8
+   "main": true
+  },
+  "Zn 3d": {
+   "z": 30,
+   "element": "Zn",
+   "level": "3d",
+   "be": 10.1,
+   "rsf": null,
+   "split": 0.5,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": false
+  },
+  "Zn 3p": {
+   "z": 30,
+   "element": "Zn",
+   "level": "3p",
+   "be": 88.6,
+   "rsf": null,
+   "split": 2.8,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Ga 2p": {
+   "z": 31,
+   "element": "Ga",
+   "level": "2p",
    "be": 1116.5,
+   "rsf": null,
    "split": 26.9,
    "ratio": 0.5,
    "sub": [
     "2p3/2",
     "2p1/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Ga 3d": {
+   "z": 31,
+   "element": "Ga",
+   "level": "3d",
+   "be": 18.7,
+   "rsf": null,
+   "split": 0.45,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": false
+  },
+  "Ga 3p": {
+   "z": 31,
+   "element": "Ga",
+   "level": "3p",
+   "be": 104.0,
+   "rsf": null,
+   "split": 3.3,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Ge 3d": {
+   "z": 32,
+   "element": "Ge",
+   "level": "3d",
    "be": 29.3,
+   "rsf": null,
    "split": 0.58,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Ge 3p": {
+   "z": 32,
+   "element": "Ge",
+   "level": "3p",
+   "be": 121.0,
+   "rsf": null,
+   "split": 4.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Ge 2p": {
+   "z": 32,
+   "element": "Ge",
+   "level": "2p",
+   "be": 1217.0,
+   "rsf": null,
+   "split": 31.1,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "main": false
+  },
+  "As 3d": {
+   "z": 33,
+   "element": "As",
+   "level": "3d",
+   "be": 41.7,
+   "rsf": null,
+   "split": 0.69,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "As 3p": {
+   "z": 33,
+   "element": "As",
+   "level": "3p",
+   "be": 140.5,
+   "rsf": null,
+   "split": 4.9,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Se 3d": {
+   "z": 34,
+   "element": "Se",
+   "level": "3d",
    "be": 55.5,
+   "rsf": null,
    "split": 0.86,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Se 3p": {
+   "z": 34,
+   "element": "Se",
+   "level": "3p",
+   "be": 160.0,
+   "rsf": null,
+   "split": 5.7,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Br 3d": {
+   "z": 35,
+   "element": "Br",
+   "level": "3d",
+   "be": 69.0,
+   "rsf": null,
+   "split": 1.05,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Br 3p": {
+   "z": 35,
+   "element": "Br",
+   "level": "3p",
+   "be": 182.0,
+   "rsf": null,
+   "split": 6.9,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Kr 3d": {
+   "z": 36,
+   "element": "Kr",
+   "level": "3d",
+   "be": 93.8,
+   "rsf": null,
+   "split": 1.2,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Rb 3d": {
+   "z": 37,
+   "element": "Rb",
+   "level": "3d",
+   "be": 111.5,
+   "rsf": null,
+   "split": 1.5,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Rb 3p": {
+   "z": 37,
+   "element": "Rb",
+   "level": "3p",
+   "be": 238.0,
+   "rsf": null,
+   "split": 9.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Sr 3d": {
+   "z": 38,
+   "element": "Sr",
+   "level": "3d",
+   "be": 133.5,
+   "rsf": null,
+   "split": 1.79,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Sr 3p": {
+   "z": 38,
+   "element": "Sr",
+   "level": "3p",
+   "be": 268.5,
+   "rsf": null,
+   "split": 10.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Y 3d": {
+   "z": 39,
+   "element": "Y",
+   "level": "3d",
    "be": 155.8,
+   "rsf": null,
    "split": 2.05,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Y 3p": {
+   "z": 39,
+   "element": "Y",
+   "level": "3p",
+   "be": 299.5,
+   "rsf": null,
+   "split": 12.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Zr 3d": {
+   "z": 40,
+   "element": "Zr",
+   "level": "3d",
    "be": 178.9,
+   "rsf": null,
    "split": 2.43,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Zr 3p": {
+   "z": 40,
+   "element": "Zr",
+   "level": "3p",
+   "be": 330.5,
+   "rsf": null,
+   "split": 13.6,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Nb 3d": {
+   "z": 41,
+   "element": "Nb",
+   "level": "3d",
    "be": 202.3,
+   "rsf": null,
    "split": 2.72,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Nb 3p": {
+   "z": 41,
+   "element": "Nb",
+   "level": "3p",
+   "be": 360.6,
+   "rsf": null,
+   "split": 15.3,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Mo 3d": {
+   "z": 42,
+   "element": "Mo",
+   "level": "3d",
    "be": 227.9,
+   "rsf": 9.5,
    "split": 3.13,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": 9.5
+   "main": true
+  },
+  "Mo 3p": {
+   "z": 42,
+   "element": "Mo",
+   "level": "3p",
+   "be": 394.0,
+   "rsf": null,
+   "split": 17.5,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
+  },
+  "Tc 3d": {
+   "z": 43,
+   "element": "Tc",
+   "level": "3d",
+   "be": 253.9,
+   "rsf": null,
+   "split": 3.4,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
   },
   "Ru 3d": {
+   "z": 44,
+   "element": "Ru",
+   "level": "3d",
    "be": 280.1,
+   "rsf": null,
    "split": 4.17,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Ru 3p": {
+   "z": 44,
+   "element": "Ru",
+   "level": "3p",
+   "be": 461.4,
+   "rsf": null,
+   "split": 22.2,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Rh 3d": {
+   "z": 45,
+   "element": "Rh",
+   "level": "3d",
    "be": 307.2,
+   "rsf": null,
    "split": 4.74,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Rh 3p": {
+   "z": 45,
+   "element": "Rh",
+   "level": "3p",
+   "be": 496.5,
+   "rsf": null,
+   "split": 25.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Pd 3d": {
+   "z": 46,
+   "element": "Pd",
+   "level": "3d",
    "be": 335.1,
+   "rsf": null,
    "split": 5.26,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Pd 3p": {
+   "z": 46,
+   "element": "Pd",
+   "level": "3p",
+   "be": 532.4,
+   "rsf": null,
+   "split": 27.9,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Ag 3d": {
+   "z": 47,
+   "element": "Ag",
+   "level": "3d",
    "be": 368.2,
+   "rsf": 18.0,
    "split": 6.0,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": 18.0
+   "main": true
+  },
+  "Ag 3p": {
+   "z": 47,
+   "element": "Ag",
+   "level": "3p",
+   "be": 573.0,
+   "rsf": null,
+   "split": 30.0,
+   "ratio": 0.5,
+   "sub": [
+    "3p3/2",
+    "3p1/2"
+   ],
+   "main": false
   },
   "Cd 3d": {
+   "z": 48,
+   "element": "Cd",
+   "level": "3d",
    "be": 405.0,
+   "rsf": null,
    "split": 6.74,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Cd 4d": {
+   "z": 48,
+   "element": "Cd",
+   "level": "4d",
+   "be": 10.7,
+   "rsf": null,
+   "split": 0.7,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "In 3d": {
+   "z": 49,
+   "element": "In",
+   "level": "3d",
    "be": 443.9,
+   "rsf": null,
    "split": 7.54,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "In 4d": {
+   "z": 49,
+   "element": "In",
+   "level": "4d",
+   "be": 16.9,
+   "rsf": null,
+   "split": 0.86,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Sn 3d": {
+   "z": 50,
+   "element": "Sn",
+   "level": "3d",
    "be": 484.9,
+   "rsf": null,
    "split": 8.41,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Sn 4d": {
+   "z": 50,
+   "element": "Sn",
+   "level": "4d",
+   "be": 24.0,
+   "rsf": null,
+   "split": 1.05,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Sb 3d": {
+   "z": 51,
+   "element": "Sb",
+   "level": "3d",
    "be": 528.2,
+   "rsf": null,
    "split": 9.34,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Sb 4d": {
+   "z": 51,
+   "element": "Sb",
+   "level": "4d",
+   "be": 32.1,
+   "rsf": null,
+   "split": 1.25,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Te 3d": {
+   "z": 52,
+   "element": "Te",
+   "level": "3d",
    "be": 573.0,
+   "rsf": null,
    "split": 10.4,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Te 4d": {
+   "z": 52,
+   "element": "Te",
+   "level": "4d",
+   "be": 40.5,
+   "rsf": null,
+   "split": 1.5,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
+  },
+  "I 3d": {
+   "z": 53,
+   "element": "I",
+   "level": "3d",
+   "be": 619.3,
+   "rsf": null,
+   "split": 11.5,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "I 4d": {
+   "z": 53,
+   "element": "I",
+   "level": "4d",
+   "be": 49.2,
+   "rsf": null,
+   "split": 1.7,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
+  },
+  "Xe 3d": {
+   "z": 54,
+   "element": "Xe",
+   "level": "3d",
+   "be": 669.7,
+   "rsf": null,
+   "split": 12.6,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Xe 4d": {
+   "z": 54,
+   "element": "Xe",
+   "level": "4d",
+   "be": 63.9,
+   "rsf": null,
+   "split": 2.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
+  },
+  "Cs 3d": {
+   "z": 55,
+   "element": "Cs",
+   "level": "3d",
+   "be": 726.0,
+   "rsf": null,
+   "split": 13.9,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Cs 4d": {
+   "z": 55,
+   "element": "Cs",
+   "level": "4d",
+   "be": 75.5,
+   "rsf": null,
+   "split": 2.3,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
+  },
+  "Ba 3d": {
+   "z": 56,
+   "element": "Ba",
+   "level": "3d",
+   "be": 780.6,
+   "rsf": null,
+   "split": 15.3,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "main": true
+  },
+  "Ba 4d": {
+   "z": 56,
+   "element": "Ba",
+   "level": "4d",
+   "be": 90.0,
+   "rsf": null,
+   "split": 2.6,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "La 3d": {
-   "be": 835.0,
+   "z": 57,
+   "element": "La",
+   "level": "3d",
+   "be": 835.8,
+   "rsf": null,
    "split": 16.8,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "complex": true,
+   "main": true
+  },
+  "La 4d": {
+   "z": 57,
+   "element": "La",
+   "level": "4d",
+   "be": 102.0,
+   "rsf": null,
+   "split": 2.9,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
   },
   "Ce 3d": {
+   "z": 58,
+   "element": "Ce",
+   "level": "3d",
    "be": 882.0,
+   "rsf": null,
    "split": 18.6,
    "ratio": 0.6667,
    "sub": [
     "3d5/2",
     "3d3/2"
    ],
-   "rsf": null
+   "complex": true,
+   "main": true
+  },
+  "Ce 4d": {
+   "z": 58,
+   "element": "Ce",
+   "level": "4d",
+   "be": 109.0,
+   "rsf": null,
+   "split": 3.2,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Pr 3d": {
+   "z": 59,
+   "element": "Pr",
+   "level": "3d",
+   "be": 932.0,
+   "rsf": null,
+   "split": 20.4,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Pr 4d": {
+   "z": 59,
+   "element": "Pr",
+   "level": "4d",
+   "be": 114.0,
+   "rsf": null,
+   "split": 3.5,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Nd 3d": {
+   "z": 60,
+   "element": "Nd",
+   "level": "3d",
+   "be": 980.8,
+   "rsf": null,
+   "split": 22.4,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Nd 4d": {
+   "z": 60,
+   "element": "Nd",
+   "level": "4d",
+   "be": 120.5,
+   "rsf": null,
+   "split": 3.8,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Pm 3d": {
+   "z": 61,
+   "element": "Pm",
+   "level": "3d",
+   "be": 1026.0,
+   "rsf": null,
+   "split": 24.2,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Pm 4d": {
+   "z": 61,
+   "element": "Pm",
+   "level": "4d",
+   "be": 125.0,
+   "rsf": null,
+   "split": 4.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Sm 3d": {
+   "z": 62,
+   "element": "Sm",
+   "level": "3d",
+   "be": 1081.0,
+   "rsf": null,
+   "split": 27.0,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Sm 4d": {
+   "z": 62,
+   "element": "Sm",
+   "level": "4d",
+   "be": 129.0,
+   "rsf": null,
+   "split": 4.3,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Eu 3d": {
+   "z": 63,
+   "element": "Eu",
+   "level": "3d",
+   "be": 1125.0,
+   "rsf": null,
+   "split": 29.7,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Eu 4d": {
+   "z": 63,
+   "element": "Eu",
+   "level": "4d",
+   "be": 128.0,
+   "rsf": null,
+   "split": 4.6,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Gd 4d": {
+   "z": 64,
+   "element": "Gd",
+   "level": "4d",
+   "be": 140.4,
+   "rsf": null,
+   "split": 5.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Gd 3d": {
+   "z": 64,
+   "element": "Gd",
+   "level": "3d",
+   "be": 1186.0,
+   "rsf": null,
+   "split": 32.0,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Tb 4d": {
+   "z": 65,
+   "element": "Tb",
+   "level": "4d",
+   "be": 146.0,
+   "rsf": null,
+   "split": 5.3,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Tb 3d": {
+   "z": 65,
+   "element": "Tb",
+   "level": "3d",
+   "be": 1241.0,
+   "rsf": null,
+   "split": 35.0,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Dy 4d": {
+   "z": 66,
+   "element": "Dy",
+   "level": "4d",
+   "be": 152.4,
+   "rsf": null,
+   "split": 5.6,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Dy 3d": {
+   "z": 66,
+   "element": "Dy",
+   "level": "3d",
+   "be": 1296.0,
+   "rsf": null,
+   "split": 37.5,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Ho 4d": {
+   "z": 67,
+   "element": "Ho",
+   "level": "4d",
+   "be": 160.0,
+   "rsf": null,
+   "split": 6.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Er 4d": {
+   "z": 68,
+   "element": "Er",
+   "level": "4d",
+   "be": 168.4,
+   "rsf": null,
+   "split": 6.3,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Tm 4d": {
+   "z": 69,
+   "element": "Tm",
+   "level": "4d",
+   "be": 175.5,
+   "rsf": null,
+   "split": 6.6,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Yb 4d": {
+   "z": 70,
+   "element": "Yb",
+   "level": "4d",
+   "be": 185.0,
+   "rsf": null,
+   "split": 7.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "complex": true,
+   "main": true
+  },
+  "Yb 4f": {
+   "z": 70,
+   "element": "Yb",
+   "level": "4f",
+   "be": 7.0,
+   "rsf": null,
+   "split": 1.3,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "complex": true,
+   "main": false
+  },
+  "Lu 4f": {
+   "z": 71,
+   "element": "Lu",
+   "level": "4f",
+   "be": 7.1,
+   "rsf": null,
+   "split": 1.5,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Lu 4d": {
+   "z": 71,
+   "element": "Lu",
+   "level": "4d",
+   "be": 196.0,
+   "rsf": null,
+   "split": 10.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Hf 4f": {
+   "z": 72,
+   "element": "Hf",
+   "level": "4f",
    "be": 14.3,
+   "rsf": null,
    "split": 1.66,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Hf 4d": {
+   "z": 72,
+   "element": "Hf",
+   "level": "4d",
+   "be": 212.0,
+   "rsf": null,
+   "split": 10.5,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Ta 4f": {
+   "z": 73,
+   "element": "Ta",
+   "level": "4f",
    "be": 21.9,
+   "rsf": null,
    "split": 1.91,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Ta 4d": {
+   "z": 73,
+   "element": "Ta",
+   "level": "4d",
+   "be": 226.0,
+   "rsf": null,
+   "split": 11.7,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "W 4f": {
+   "z": 74,
+   "element": "W",
+   "level": "4f",
    "be": 31.4,
+   "rsf": 9.8,
    "split": 2.18,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": 9.8
+   "main": true
+  },
+  "W 4d": {
+   "z": 74,
+   "element": "W",
+   "level": "4d",
+   "be": 243.5,
+   "rsf": null,
+   "split": 12.4,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Re 4f": {
+   "z": 75,
+   "element": "Re",
+   "level": "4f",
    "be": 40.3,
+   "rsf": null,
    "split": 2.43,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Re 4d": {
+   "z": 75,
+   "element": "Re",
+   "level": "4d",
+   "be": 260.0,
+   "rsf": null,
+   "split": 13.6,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Os 4f": {
+   "z": 76,
+   "element": "Os",
+   "level": "4f",
    "be": 50.7,
+   "rsf": null,
    "split": 2.71,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Os 4d": {
+   "z": 76,
+   "element": "Os",
+   "level": "4d",
+   "be": 279.0,
+   "rsf": null,
+   "split": 14.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Ir 4f": {
+   "z": 77,
+   "element": "Ir",
+   "level": "4f",
    "be": 60.9,
+   "rsf": null,
    "split": 2.98,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Ir 4d": {
+   "z": 77,
+   "element": "Ir",
+   "level": "4d",
+   "be": 296.3,
+   "rsf": null,
+   "split": 15.0,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Pt 4f": {
+   "z": 78,
+   "element": "Pt",
+   "level": "4f",
    "be": 71.1,
+   "rsf": 15.9,
    "split": 3.33,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": 15.9
+   "main": true
+  },
+  "Pt 4d": {
+   "z": 78,
+   "element": "Pt",
+   "level": "4d",
+   "be": 314.6,
+   "rsf": null,
+   "split": 16.8,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Au 4f": {
+   "z": 79,
+   "element": "Au",
+   "level": "4f",
    "be": 84.0,
+   "rsf": 17.1,
    "split": 3.67,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": 17.1
+   "main": true
+  },
+  "Au 4d": {
+   "z": 79,
+   "element": "Au",
+   "level": "4d",
+   "be": 335.1,
+   "rsf": null,
+   "split": 17.9,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
   },
   "Hg 4f": {
+   "z": 80,
+   "element": "Hg",
+   "level": "4f",
    "be": 99.9,
+   "rsf": null,
    "split": 4.05,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Hg 4d": {
+   "z": 80,
+   "element": "Hg",
+   "level": "4d",
+   "be": 358.8,
+   "rsf": null,
+   "split": 19.4,
+   "ratio": 0.6667,
+   "sub": [
+    "4d5/2",
+    "4d3/2"
+   ],
+   "main": false
+  },
+  "Tl 4f": {
+   "z": 81,
+   "element": "Tl",
+   "level": "4f",
+   "be": 117.7,
+   "rsf": null,
+   "split": 4.42,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Tl 5d": {
+   "z": 81,
+   "element": "Tl",
+   "level": "5d",
+   "be": 12.5,
+   "rsf": null,
+   "split": 2.2,
+   "ratio": 0.6667,
+   "sub": [
+    "5d5/2",
+    "5d3/2"
+   ],
+   "main": false
   },
   "Pb 4f": {
+   "z": 82,
+   "element": "Pb",
+   "level": "4f",
    "be": 136.9,
+   "rsf": null,
    "split": 4.86,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Pb 5d": {
+   "z": 82,
+   "element": "Pb",
+   "level": "5d",
+   "be": 18.0,
+   "rsf": null,
+   "split": 2.6,
+   "ratio": 0.6667,
+   "sub": [
+    "5d5/2",
+    "5d3/2"
+   ],
+   "main": false
   },
   "Bi 4f": {
+   "z": 83,
+   "element": "Bi",
+   "level": "4f",
    "be": 156.9,
+   "rsf": null,
    "split": 5.31,
    "ratio": 0.75,
    "sub": [
     "4f7/2",
     "4f5/2"
    ],
-   "rsf": null
+   "main": true
+  },
+  "Bi 5d": {
+   "z": 83,
+   "element": "Bi",
+   "level": "5d",
+   "be": 24.4,
+   "rsf": null,
+   "split": 3.0,
+   "ratio": 0.6667,
+   "sub": [
+    "5d5/2",
+    "5d3/2"
+   ],
+   "main": false
+  },
+  "Po 4f": {
+   "z": 84,
+   "element": "Po",
+   "level": "4f",
+   "be": 176.5,
+   "rsf": null,
+   "split": 5.8,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "At 4f": {
+   "z": 85,
+   "element": "At",
+   "level": "4f",
+   "be": 195.0,
+   "rsf": null,
+   "split": 6.3,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Rn 4f": {
+   "z": 86,
+   "element": "Rn",
+   "level": "4f",
+   "be": 214.0,
+   "rsf": null,
+   "split": 6.8,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Fr 4f": {
+   "z": 87,
+   "element": "Fr",
+   "level": "4f",
+   "be": 234.0,
+   "rsf": null,
+   "split": 7.3,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Ra 4f": {
+   "z": 88,
+   "element": "Ra",
+   "level": "4f",
+   "be": 254.0,
+   "rsf": null,
+   "split": 7.9,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Ac 4f": {
+   "z": 89,
+   "element": "Ac",
+   "level": "4f",
+   "be": 272.0,
+   "rsf": null,
+   "split": 8.4,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Th 4f": {
+   "z": 90,
+   "element": "Th",
+   "level": "4f",
+   "be": 333.1,
+   "rsf": null,
+   "split": 9.3,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "Pa 4f": {
+   "z": 91,
+   "element": "Pa",
+   "level": "4f",
+   "be": 360.0,
+   "rsf": null,
+   "split": 10.1,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "main": true
+  },
+  "U 4f": {
+   "z": 92,
+   "element": "U",
+   "level": "4f",
+   "be": 377.3,
+   "rsf": null,
+   "split": 10.9,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "complex": true,
+   "main": true
   }
  }
 }

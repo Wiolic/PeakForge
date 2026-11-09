@@ -7,27 +7,32 @@ from typing import Any
 
 import numpy as np
 
-_ORBITAL_RE = re.compile(r"^\s*([A-Z][a-z]?)\s*(\d)\s*([spdf])\s*(\d/?\d?)?\s*$")
+_ORBITAL_RE = re.compile(r"^\s*([A-Z][a-z]?)\s*(\d)\s*([spdf])(\s*\d\s*/\s*2|\d)?\s*$")
+# short j notation used by instruments: Fe2p3 = Fe 2p3/2, Ce3d5 = Ce 3d5/2, Pt4f7 = Pt 4f7/2
+_J_SHORT = {"p": {"1": "1/2", "3": "3/2"}, "d": {"3": "3/2", "5": "5/2"}, "f": {"5": "5/2", "7": "7/2"}}
 
 
 def normalize_region(label: str) -> str:
-    """'Ir4f' / 'Ir 4f' / 'Ir 4f 4' / 'Su1s' -> 'Ir 4f' / 'Survey'."""
+    """'Ir4f' / 'Ir 4f' / 'Ir 4f 4' / 'Fe2p3' / 'Su1s' -> 'Ir 4f' / 'Ir 4f' / 'Ir 4f' / 'Fe 2p3/2' / 'Survey'."""
     s = label.strip()
     if s.lower().startswith("su") and "1s" in s.lower():
         return "Survey"
-    s = re.sub(r"\s+\d+$", "", s)  # VAMAS block ids often end with a counter: "C 1s 1"
+    s = re.sub(r"\s+\d+$", "", s) if not _ORBITAL_RE.match(s) else s   # VAMAS ids end with a counter: "C 1s 1"
     m = _ORBITAL_RE.match(s)
     if m:
         el, n, l, j = m.groups()
         out = f"{el} {n}{l}"
         if j:
-            out += j
+            j = j.replace(" ", "")
+            j = _J_SHORT.get(l, {}).get(j, j) if "/" not in j else j
+            if "/" in j:
+                out += j
         return out
     return s
 
 
 def element_of(region: str) -> str | None:
-    m = re.match(r"([A-Z][a-z]?)\s*\d[spdf]", region)
+    m = re.match(r"([A-Z][a-z]?)(\s*\d[spdf]|$)", region.strip())
     return m.group(1) if m else None
 
 

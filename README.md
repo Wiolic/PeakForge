@@ -1,94 +1,226 @@
-<p align="center"><img src="src/peakforge/assets/peakforge.png" width="96"></p>
+<p align="center"><img src="src/peakforge/assets/peakforge.png" width="88"></p>
 
-# PeakForge 锻峰
+<h1 align="center">PeakForge</h1>
 
-**XPS 分析桌面软件**：读取 PHI `.spe` / VAMAS `.vms` / CSV / Excel → 荷电校准 → 背景扣除 → 带约束的分峰拟合 → 拟合质量诊断 → 一键导出 Origin 工程（`.opju`）、高分辨率图片和 Excel。
-既可以在图形界面里纯手动分析，也可以通过 **MCP** 接入 Claude Code / Codex / Cursor 等 AI Agent，用自然语言指挥分析。
+<p align="center"><b>从 XPS 原始数据到可投稿的 Origin 图，几分钟完成。</b><br>
+免费 · 开源 · 中文界面 · 鼠标操作即可 · 也可以直接交给 AI 分析</p>
 
-[English README](README_en.md)
+<p align="center"><b>Developed by Eggy &amp; Claude Opus 5.5</b></p>
 
-## 功能
+<p align="center"><a href="README_en.md">English</a> ·
+<a href="#为什么选择-peakforge">为什么选择</a> ·
+<a href="#安装零基础">安装</a> ·
+<a href="#quickstart-a只用鼠标">Quickstart：鼠标</a> ·
+<a href="#quickstart-b交给-ai">Quickstart：AI</a> ·
+<a href="#读懂结果">读懂结果</a> ·
+<a href="#免责声明">免责声明</a></p>
 
-| 模块 | 内容 |
+![PeakForge 主界面](docs/images/gui_main.png)
+
+---
+
+## 为什么选择 PeakForge
+
+很多实验室分析 XPS 的流程是：在仪器软件（如 Thermo **Avantage**、PHI **MultiPak**）里分峰 → 把数据导成 Excel/文本 → 打开 Origin 重新作图、逐条调颜色和图例 → 换一个样品再来一遍。PeakForge 把这条链缩短成**一个窗口、几次点击**。
+
+| | PeakForge | 以 Avantage 为代表的常规流程 |
+|---|---|---|
+| **费用与许可** | 免费、开源（MIT），任何 Windows 电脑都能装 | 商业软件，通常需要许可，常常只装在仪器电脑上 |
+| **数据格式** | PHI `.spe`、VAMAS `.vms`、CSV/TXT、Excel 一处打开；同一测量的 `.spe` 与 `.vms` 读出完全一致 | 各厂商软件主要面向自家格式，跨仪器、跨测试中心的数据需要转格式 |
+| **出图** | **一键生成 Origin 工程 `.opju`**：每个谱区一张排好版的图（数据点、背景、包络、各组分填充、图例、谱区与样品标注），可继续在 Origin 里修改 | 导出数据后在 Origin 里手动重建每张图 |
+| **配色** | 24 套成体系的配色（单色渐变 / 多色对比 / 柔和期刊 / 色盲友好），图、Origin、导出图片统一 | 逐条手动设置 |
+| **批量** | 一个样品调好的模型一键套用到全部样品（可固定峰宽和线形），自动生成堆叠对比图 | 通常逐个样品重复操作 |
+| **元素覆盖** | 内置 Li–U 全部 90 种元素、169 个能级的峰位与自旋轨道分裂；任何元素都能“自动找峰”起步 | 视软件与版本而定 |
+| **拟合可信度** | 内置诊断：参数是否顶到边界、参数强相关、**去掉每个组分后的 ΔBIC（这个组分数据到底支不支持）**、多起点稳定性 | 视软件与版本而定，通常需要用户自行判断 |
+| **可追溯** | 原始数据只读保存；每个谱的模型和结果存为可读的 JSON；随时重算 | 依赖软件内部文件 |
+| **AI 协作** | 内置 MCP 接口：用一句中文让 AI（Claude、Codex 等）完成导入、校准、拟合、诊断、导出；界面实时显示 AI 的每一步 | 无 |
+| **语言** | 中文 / 英文一键切换 | 多为英文 |
+
+**速度参考**（普通笔记本，实测）：Ir 4f 带不对称线形的三态分峰 0.5–4 秒；一个 5 谱区样品从预设开始全部拟合约 3 秒；15 个谱区一次导出成排好版的 Origin 工程约 13 秒。
+
+**什么时候仍然要用 Avantage / CasaXPS / MultiPak？** 发表前的**交叉核对**（强烈建议，见[免责声明](#免责声明)）；需要厂商专属的透射函数与灵敏度因子库做严格定量时；深度剖析、成像、角分辨等 PeakForge 0.1 尚未覆盖的功能。
+
+### 导出效果（直接由 PeakForge 生成的 Origin 图）
+
+![Origin 导出](docs/images/origin_export.png)
+
+---
+
+## 功能一览
+
+- **读取**：PHI MultiPak/SmartSoft `.spe`、VAMAS `.vms`（ISO 14976）、CSV/TXT、Excel；识别 `Fe2p3`、`Fe 2p3/2`、`Pt4f7` 等各种谱区写法。
+- **荷电校准**：C 1s 的 C–C 自动定到 284.8 eV（可改），或手动输入。
+- **背景**：Shirley、Smart、线性、Tougaard；端点可在图上拖动，自动避开邻峰拖尾。
+- **线形**：高斯、洛伦兹、伪 Voigt、GL/SGL（CasaXPS 记法）、Voigt、Doniach–Šunjić（金属不对称峰）、LA 不对称线形。
+- **约束**：每个参数可设上下限、固定，或联动（如“Ir³⁺ 的半峰宽 = Ir⁴⁺ 的半峰宽”）；自旋轨道双峰的间距与面积比自动带入。
+- **全元素**：Li–U 共 90 种元素、169 个能级。没有预设的元素用“通用：自动找峰”——自动识别各化学态的主峰、去掉双峰的伴峰、按残差补肩峰；多重态复杂的能级（如 Ce 3d、Ni 2p）自动改用自由单峰。
+- **预设库**：C 1s 污染碳、O 1s 氧化物、Ir 4f、Ta 4f、Pt 4f、Au 4f；调好的模型可以存成自己的预设。
+- **诊断、批量、定量**：见上表；定量的灵敏度因子可在表格里改成你仪器的值。
+- **导出**：Origin `.opju`（本机有 Origin 时直接生成；没有时生成数据 + 一个脚本，在 Origin 里运行一行即可）、PNG/TIFF/SVG/PDF、Excel（含各组分参数、拟合质量、定量、曲线数据、软件信息与免责声明）。
+
+---
+
+## 安装（零基础）
+
+只需要做一次，约 10 分钟，需要联网。
+
+1. **安装 Python**：打开 <https://www.python.org/downloads/>，下载 3.12 版安装包。运行时**务必勾选底部的 “Add python.exe to PATH”**，然后点 “Install Now”。
+2. **下载 PeakForge**：在本页点击绿色的 **Code** 按钮 → **Download ZIP**，解压到任意文件夹（例如桌面）。
+3. **运行安装程序**：双击解压出来的 `installer.py`。
+   - 如果双击后打开的是记事本或代码编辑器：右键 `installer.py` → **打开方式** → 选择 **Python**。
+4. 在安装窗口点 **安装 / Install**，等待进度条走完（会自动下载约 600 MB 的依赖）。
+   - 电脑上装了 Origin 2021 或更新版本，就保持勾选“安装 originpro”，以后可以直接生成 `.opju`。
+5. 完成后桌面出现 **PeakForge** 图标。以后双击图标或双击任何 `.xpsproj` 工程文件即可打开。
+
+> 卸载：开始菜单 → PeakForge → 卸载。你的工程文件不会被删除。
+
+---
+
+## Quickstart A：只用鼠标
+
+> 先用仓库自带的示例数据练手：`examples/demo_fresh.csv` 和 `examples/demo_aged.csv`（模拟数据，包含 C 1s、O 1s、Ir 4f、Ti 2p）。
+
+**1. 新建工程**：菜单 **文件 → 新建工程**，选一个空文件夹（一个课题一个工程）。
+
+**2. 导入数据**：点顶栏 **导入数据**，选中你的 `.spe` / `.vms` / `.csv` / `.xlsx` 文件（可以一次多选）。左侧出现“样品 → 谱区”列表。原始文件会被复制进工程并设为只读，不会被改动。
+
+**3. 荷电校准**：点 **自动荷电校准**。每个样品旁边显示校准位移（例如 `+0.81 eV`）。想手动改：右键样品 → 手动设置荷电位移。
+
+**4. 选一个谱区**：在左侧点击，例如 `Ir 4f`。中间是谱图，右侧是“分峰模型”。
+
+**5. 建立模型**：右侧 **预设** 下拉框里选：
+- 有专门预设的谱区（C 1s、O 1s、Ir 4f、Ta 4f、Pt 4f、Au 4f）选对应预设；
+- 其它任何元素选 **“通用：自动找峰（适用任何元素）”**；
+- 然后点 **应用**。图上出现各组分的彩色填充。
+
+**6. 拟合**：点顶栏或右下角蓝色的 **拟合**。左侧该谱区前的圆点变绿，旁边是残差 RMS（越小越好，一般 < 2–3 % 就很好）。
+
+**7. 手动调整（需要时）**：
+- 在图上**拖动彩色圆点**移动峰的位置和高度；
+- **右键**图上某个位置 → 在此添加峰 / 删除组分 / 设置背景端点；
+- **拖动灰色虚线**改背景范围；
+- 在“参数”表里改数值、上下限，或取消“可变”以固定某个参数；在“联动表达式”里写 `Ir4.fwhm`，表示和 Ir4 的半峰宽相同；
+- 改完再点 **拟合**。不满意按 `Ctrl+Z` 撤销。
+
+**8. 检查可信度**：点 **拟合诊断**，下方“拟合诊断”页给出警告和每个组分的 ΔBIC（含义见[读懂结果](#读懂结果)）。
+
+**9. 套用到其它样品**：调好一个样品后，菜单 **分析 → 批量应用当前模型**，勾选目标谱区和要固定的参数（默认固定半峰宽）。或者点 **拟合全部**，所有谱区按各自的预设拟合。
+
+**10. 选配色并导出**：右上角选择喜欢的配色（例如“冰川 Glacier”），点 **导出**，勾选 Origin / PNG / Excel，确定。导出文件夹会自动打开：
+- `origin/*.opju` —— 双击用 Origin 打开，每个谱区一张图；
+- `figures/` —— 高分辨率图片和多样品堆叠对比图；
+- `*_results.xlsx` —— 峰位、半峰宽、面积、占比、拟合质量、定量。
+
+**小技巧**
+- 谱区名称不对（例如 CSV 的列名叫 “Sample1”）：右键该谱区 → **指定元素与能级…**，在列表里选，如 `Fe 2p`。
+- 只测了 2p3/2 的数据，选 `Fe 2p3/2` 这种带 j 的能级，PeakForge 会用单峰而不是双峰。
+- 中文 / English：菜单 **视图 → 语言**。
+
+---
+
+## Quickstart B：交给 AI
+
+不需要会编程，也不需要会命令行。你用中文描述想要什么，AI 去操作 PeakForge，你在 PeakForge 窗口里实时看到它的每一步。
+
+**1. 安装 AI 助手（一次）**：下载并安装 Claude 桌面版 <https://claude.ai/download>，登录，切到 **Code** 标签。（Codex、Cursor 等支持 MCP 的工具也可以。）
+
+**2. 让 AI 认识 PeakForge（一次）**：打开 PeakForge，点右上角 **Agent** 按钮，在“Claude Code”一栏点 **复制**。然后在 Claude 里新建会话，**把复制的内容粘贴进去，前面加一句**：
+
+> 请帮我运行下面这条命令，把 PeakForge 连接为 MCP 工具，然后提示我重新打开会话：
+> （粘贴的内容）
+
+AI 会请求运行这条命令，点允许即可。完成后重新开一个会话。
+
+**3. 选择数据文件夹**：在 Claude 的 Code 标签里选择你放 XPS 数据的文件夹作为工作目录。
+
+**4. 用一句话下达任务**。可以直接复制下面的模板，按需修改：
+
+> 用 PeakForge 分析这个文件夹里的 XPS 数据：
+> 1. 新建一个叫 “IrTaOx” 的工程，导入所有 .spe 文件；
+> 2. 用 C 1s 定到 284.8 eV 做荷电校准，告诉我每个样品的位移；
+> 3. Ir 4f 用 Ir⁰/Ir⁴⁺/Ir³⁺ 预设，O 1s 用氧化物三峰预设，其它谱区用通用自动找峰；
+> 4. 全部拟合，并对每个 Ir 4f 做拟合诊断，把不被数据支持的组分、顶到边界的参数列出来；
+> 5. 用“峡湾 Fjord”配色导出 Origin、PNG 和 Excel；
+> 6. 最后用表格总结各样品的价态占比，并提醒我需要和 CasaXPS 或 Avantage 交叉核对。
+
+其它常用说法：
+- “把样品 A 的 O 1s 模型套用到所有样品，固定半峰宽，比较晶格氧占比的变化。”
+- “Ta 4f 残差偏大，帮我检查是不是漏了 K 3s 或 O 2s 的邻峰。”
+- “这个 CSV 的第二列其实是 Fe 2p，帮我指定能级后用通用模型拟合。”
+
+**5. 和 AI 协作**：AI 的修改实时出现在打开的 PeakForge 窗口里。你可以随时在窗口里手动改峰，再让 AI 接着做。点 Agent 窗口里的“写入 AGENTS.md”，会给 AI 留一份分析规范（不改原始数据、先校准、先诊断再报占比等）。
+
+---
+
+## 读懂结果
+
+只需要基本的 XPS 理论知识就能看懂：
+
+| 指标 | 含义 | 怎么看 |
+|---|---|---|
+| **残差 RMS (%)** | 拟合曲线与数据之差，占峰高的百分比 | < 2–3 % 通常良好；残差图上出现成片的鼓包，说明漏了组分或背景不对 |
+| **χ²ᵣ** | 按噪声归一的残差 | 接近 1 说明拟合误差与计数噪声相当 |
+| **±1σ** | 参数的统计不确定度 | 不确定度和数值本身相当时，这个参数基本没被数据确定 |
+| **顶到边界** | 参数停在你设定的上/下限 | 说明约束在“强行”决定结果，需要重新考虑范围或模型 |
+| **强相关参数** | 两个参数此消彼长（\|r\| > 0.95） | 例如两个重叠峰的面积，单独报告其中一个要谨慎 |
+| **ΔBIC（去掉组分）** | 去掉某个组分后模型变差多少 | > 10 强烈支持；2–10 有一定支持；< 2 数据不支持这个组分；“local minimum” 表示当前解不是最优，多起点重拟合 |
+| **多起点稳定性** | 从不同初值拟合，占比的波动 | 波动大（> 3 %）说明结果依赖初值 |
+
+**建议的习惯**：自旋轨道间距和面积比保持文献值；同一化学态在不同样品间用相同的半峰宽和线形（批量应用时固定）；报告价态占比时同时给出诊断结论；**发表前与常用软件交叉核对**。
+
+---
+
+## 配色
+
+24 套配色以自然景观命名，分 6 个色族，每个色族 4 套；每套标注类型（单色渐变适合同一元素的价态系列，多色对比适合互不相关的组分，柔和期刊适合打印，色盲友好基于 Okabe–Ito）。也可以从任意一套出发调色，保存为自己的配色。
+
+| 色族 | 配色 |
 |---|---|
-| 数据读取 | PHI MultiPak/SmartSoft `.spe`（二进制）、VAMAS `.vms`（ISO 14976）、CSV/TXT、Excel；同一测量的 SPE 与 VMS 读出完全一致（统一为 CPS） |
-| 荷电校准 | C 1s C–C 自动定位到 284.8 eV（可改参考值），或手动输入位移；按样品保存 |
-| 背景 | Shirley、Smart（不超过数据）、线性、Tougaard（U3 通用截面），端点可在图上拖动；自动选端点以避开相邻峰的拖尾 |
-| 线形 | Gaussian、Lorentzian、Pseudo-Voigt、GL(积) / SGL(和)（CasaXPS 记法）、Voigt、Doniach–Šunjić⊗Gauss、LA 不对称线形；面积归一 |
-| 约束 | 每个参数可设上下限、固定，或用表达式联动（如 `Ir4.fwhm`、`Ir0.center + 1.0`）；自旋轨道双峰（间距、面积比）内置于 51 个常见能级 |
-| 预设库 | C 1s 污染碳、O 1s 氧化物、Ir 4f、Ta 4f、Pt 4f、Au 4f 等；可把当前模型保存为自己的预设 |
-| 诊断 | 参数顶边界、强相关参数、去掉每个组分重拟合的 ΔBIC（判断组分是否被数据支持）、多起点稳定性、残差 |
-| 批量 | 一个样品的模型套用到其它样品（可固定 FWHM/线形参数），堆叠对比图，元素定量（RSF 可编辑） |
-| 配色 | 24 套自然景观配色，6 个色族 × 4：水域（冰川 Glacier·峡湾·泻湖·深海）、森林（苔原·松林·竹林·雨林）、大地（沙漠·峡谷·黄土·恶地）、天穹（晨曦·暮色·极光·薄暮）、山岩（玄武·花岗·板岩·高地）、原野（薰衣草田·草甸·秋野·草原）；每套标注类型：单色渐变 / 多色对比 / 柔和期刊 / 色盲友好；可新建自定义配色。默认「冰川 Glacier」即原 Ir-new 模板配色 |
-| 导出 | Origin `.opju`（Ir-new 模板版式 + 所选配色）；没有 Origin 时输出数据 + 脚本，在 Origin 中 `run -pyf` 即可生成；PNG/TIFF/SVG/PDF；Excel |
-| Agent | `peakforge mcp` 提供 20 个 MCP 工具；GUI 实时显示 Agent 的修改 |
+| 水域 Waters | 冰川 Glacier（默认）· 峡湾 Fjord · 泻湖 Lagoon · 深海 Abyss |
+| 森林 Forests | 苔原 Moss · 松林 Pinewood · 竹林 Bamboo · 雨林 Rainforest |
+| 大地 Earth | 沙漠 Desert · 峡谷 Canyon · 黄土 Loess · 恶地 Badlands |
+| 天穹 Skies | 晨曦 Dawn · 暮色 Dusk · 极光 Aurora · 薄暮 Twilight |
+| 山岩 Stone | 玄武 Basalt · 花岗 Granite · 板岩 Slate · 高地 Highland |
+| 原野 Fields | 薰衣草田 Lavender · 草甸 Meadow · 秋野 Autumn · 草原 Prairie |
 
-## 安装（Windows）
+![24 套配色](docs/images/palettes.png)
 
-1. 安装 [Python 3.11 或 3.12](https://www.python.org/downloads/)（勾选 *Add to PATH*）。
-2. 点击本页绿色 **Code → Download ZIP**，解压。
-3. 双击 `installer.py`，按提示安装（需要联网，约 600 MB）。完成后桌面出现 **PeakForge 锻峰** 图标，`.xpsproj` 工程文件可双击打开。
+---
 
-> 本机有 Origin 2021 以上时，勾选“安装 originpro”即可直接生成 `.opju`。
+## 常见问题
 
-命令行安装（任意平台）：
+- **没有 Origin 能用吗？** 可以。导出时会生成 PNG/TIFF/SVG/PDF 和 Excel；Origin 部分会生成数据和脚本，以后在装了 Origin 的电脑上，打开 Origin → 窗口 → 脚本窗口，粘贴 `run -pyf "…/build_origin.py"`（导出文件夹里的说明文件里有完整路径）即可得到 `.opju`。
+- **数据会上传吗？** 不会。PeakForge 完全在本机运行。只有你主动使用 AI 助手时，你发给 AI 的内容才会经过 AI 服务。
+- **结果和 Avantage 不一样？** 背景端点、线形、约束、荷电参考的任何差异都会改变结果。先把这些设成一致再比较；仍有差异时以你能解释的物理模型为准。
+- **灵敏度因子（RSF）对吗？** 内置值是 Scofield 截面的近似值，只适合粗略定量。请在“元素定量”表格里改成你仪器的 RSF。
+
+---
+
+## 给会编程的用户
 
 ```bash
 pip install "git+https://github.com/Wiolic/PeakForge.git"
-peakforge gui
-```
-
-## 快速上手（图形界面）
-
-1. **文件 → 新建工程**，选一个空文件夹。
-2. **文件 → 导入数据**，选择 `.spe` / `.vms` / `.csv` / `.xlsx`（原始文件会复制到 `data/raw/` 并设为只读）。
-3. **分析 → 自动荷电校准**。
-4. 左侧选一个谱区 → 右侧选预设 → **应用** → **拟合**（F5）。
-   - 图上：拖动菱形标记移动峰；拖动虚线改背景端点；右键添加/删除峰；滚轮缩放。
-   - 参数表：改数值、上下限、勾选“可变”、填“联动表达式”。
-5. **拟合诊断**（F6）查看组分是否被数据支持。
-6. **分析 → 批量应用当前模型** 套用到其它样品。
-7. **导出**（Ctrl+E）：Origin / 图片 / Excel。
-
-## 接入 AI Agent（MCP）
-
-菜单 **Agent → 连接 AI Agent** 会给出可直接复制的配置。以 Claude Code 为例：
-
-```bash
-claude mcp add peakforge -- peakforge mcp
-```
-
-然后在工程文件夹里对 Agent 说“把所有样品的 Ir 4f 用 Ir⁰/Ir⁴⁺/Ir³⁺ 模型拟合，检查诊断后导出 Origin”。
-Agent 的每一步都写进工程文件夹，打开着的 GUI 会自动刷新。菜单里的“写入 AGENTS.md”会给 Agent 留下分析规则。
-
-## 工程文件夹结构
-
-```
-MyProject/
-  MyProject.xpsproj    工程（样品、荷电位移、设置）
-  data/raw/            原始数据（只读）
-  models/              每个谱的分峰模型 + 最近一次拟合结果（JSON）
-  presets/             本工程专用预设
-  output/              所有导出，可随时删除重建
-```
-
-## 命令行
-
-```bash
-peakforge init D:/xps/proj --name IrTaOx
+peakforge gui                                  # 图形界面
+peakforge init D:/xps/proj --name IrTaOx       # 命令行
 peakforge add D:/xps/proj data/*.spe
 peakforge charge D:/xps/proj
 peakforge fit D:/xps/proj --region "Ir 4f" --deep
-peakforge export D:/xps/proj --formats png xlsx origin
+peakforge export D:/xps/proj --formats png xlsx origin --theme fjord
+peakforge mcp                                  # MCP 服务器（stdio）
 ```
 
-`peakforge --help` 查看全部命令。
+工程文件夹：`<名称>.xpsproj`（样品、荷电位移、设置）· `data/raw/`（原始数据，只读）· `models/`（每个谱的模型与结果，JSON）· `presets/`（工程专用预设）· `output/`（全部导出，可随时删除重建）。
 
-## 注意
+开发：`python -m pytest -q`（含 169 个能级的逐一拟合测试）；能级表由 `tools/build_orbitals.py` 生成。
 
-- 内置 RSF 为 Scofield 截面的近似值，仅供粗略定量；正式定量请在“元素定量”表中改成你所用仪器的 RSF。
-- 预设只是起点：报告价态占比前请看诊断（ΔBIC、顶边界、相关性）。
+---
+
+## 免责声明
+
+本软件仅用于科研辅助。分峰结果取决于背景、线形、约束与初值的选择，可能存在系统偏差。**发表或据此下结论之前，请与 CasaXPS、Thermo Avantage、PHI MultiPak 等常用 XPS 软件的分析结果进行比对**，并由使用者自行判断其合理性。作者不对使用本软件得到的任何结果承担责任。内置的峰位、自旋轨道分裂和灵敏度因子为近似的手册值，只用于给拟合提供初值。
+
+Avantage、MultiPak、CasaXPS、Origin 是其各自所有者的商标；PeakForge 与它们没有关联。
 
 ## 许可
 
-MIT © Wiolic
+MIT License · **Developed by Eggy & Claude Opus 5.5**

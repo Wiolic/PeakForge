@@ -14,7 +14,7 @@ from mcp.server import MCPServer
 from . import __version__, ops
 from .project import Project, _jsonable
 
-INSTRUCTIONS = """PeakForge (锻峰) XPS analysis. Typical workflow:
+INSTRUCTIONS = """PeakForge XPS analysis. Typical workflow:
 1. create_project / open_project, then add_files (.vms/.spe/.csv/.xlsx; raw files are copied read-only).
 2. charge_correct (C 1s C–C → 284.8 eV by default) — check the shift per sample in status.
 3. For each region: list_presets(region) → apply_preset(key, preset_id), or add_component manually.
@@ -23,7 +23,9 @@ INSTRUCTIONS = """PeakForge (锻峰) XPS analysis. Typical workflow:
 5. Adjust with set_param (value/min/max/vary/expr links like "Ir4.fwhm"), set_background, refit.
 6. batch_apply to reuse one model across samples; quantify; export (png/xlsx/origin).
 Rules: never edit files in data/raw. Report fitted numbers with their diagnostics; say when a
-component is 'not supported' by ΔBIC. Spectrum keys look like 'sample/region', e.g. 'S1/Ir 4f'."""
+component is 'not supported' by ΔBIC.
+Always remind the user that results should be cross-checked against established XPS
+software (CasaXPS, Avantage, MultiPak) before publication. Spectrum keys look like 'sample/region', e.g. 'S1/Ir 4f'."""
 
 mcp = MCPServer("PeakForge", instructions=INSTRUCTIONS, version=__version__)
 _state: dict = {"path": os.environ.get("PEAKFORGE_PROJECT")}
@@ -100,9 +102,23 @@ def list_presets(region: str | None = None, project: str | None = None) -> list[
 
 @mcp.tool()
 def apply_preset(key: str, preset_id: str | None = None, project: str | None = None) -> dict:
-    """Start the model of spectrum `key` from a preset (default: first preset for its region, else a
-    generic singlet/doublet). Background end points and initial areas are set from the data."""
+    """Start the model of spectrum `key` from a preset. preset_id='__generic__' = automatic peak finding
+    for ANY element (doublets with tabulated splitting); None = first preset for the region, else generic.
+    Background end points and initial areas are set from the data."""
     return ops.apply_preset(_p(project), key, preset_id)
+
+
+@mcp.tool()
+def list_orbitals(element: str | None = None) -> list[dict]:
+    """Core-level table (Li–U): typical BE, spin–orbit split, area ratio, multiplet flag. Filter by element."""
+    return ops.list_orbitals(element)
+
+
+@mcp.tool()
+def set_region(key: str, region: str, project: str | None = None) -> dict:
+    """Assign the element / core level of a spectrum, e.g. a CSV column -> 'Fe 2p' or 'Ce 3d'.
+    Region labels: '<El> <n><l>' (doublet) or '<El> <n><l><j>' like 'Fe 2p3/2' (single sub-level)."""
+    return ops.set_region(_p(project), key, region)
 
 
 @mcp.tool()

@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "peakforge"
 version = "0.1.0"
-description = "PeakForge (锻峰): XPS analysis desktop app — SPE/VMS import, constrained peak fitting, diagnostics, Origin export, MCP agent interface"
+description = "PeakForge: XPS analysis desktop app — SPE/VMS import, constrained peak fitting, diagnostics, Origin export, MCP agent interface"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Wiolic" }]
+authors = [{ name = "Eggy" }, { name = "Claude Opus 5.5" }]
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.24",

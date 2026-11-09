@@ -24,7 +24,7 @@ def config_snippets() -> dict:
 
 
 AGENTS_MD = """<!-- PeakForge:BEGIN -->
-## PeakForge (锻峰) XPS project
+## PeakForge XPS project
 
 This folder is a PeakForge project. Drive it through the `peakforge` MCP server (tools: status,
 add_files, charge_correct, list_presets, apply_preset, add_component, set_param, set_background,

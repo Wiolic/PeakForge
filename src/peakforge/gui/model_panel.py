@@ -159,7 +159,10 @@ class ModelPanel(QWidget):
         self.region, self.project_dir = region, project_dir
         self.preset.blockSignals(True)
         self.preset.clear()
-        self.preset.addItem("(auto)" if lang() == "en" else "（自动）", "")
+        self.preset.addItem("Auto (preset if available, else peak search)" if lang() == "en"
+                            else "自动（有预设用预设，否则自动找峰）", "")
+        self.preset.addItem("Generic: automatic peak search (any element)" if lang() == "en"
+                            else "通用：自动找峰（适用任何元素）", "__generic__")
         for p in presets_mod.presets_for(region, project_dir):
             self.preset.addItem(p.get("name_zh" if lang() == "zh" else "name_en") or p["id"], p["id"])
         self.preset.blockSignals(False)

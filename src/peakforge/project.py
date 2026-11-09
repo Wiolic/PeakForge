@@ -118,9 +118,32 @@ class Project:
             except Exception as e:      # noqa: BLE001
                 f["error"] = str(e)
                 continue
+            ov = self.data.get("region_override", {})
             for s in sps:
                 s.sample = f["sample"]
+                orig = s.key
+                if orig in ov:
+                    s.meta["orig_region"] = s.region
+                    s.meta["orig_key"] = orig
+                    s.region = ov[orig]
                 self.spectra[s.key] = s
+
+    def set_region(self, key: str, region: str) -> str:
+        """Assign the element / core level of a spectrum (e.g. a CSV column called 'Sample1' → 'Fe 2p').
+        The model file moves with the spectrum. Returns the new key."""
+        from .spectrum import normalize_region
+        s = self.spectra[key]
+        region = normalize_region(region)
+        orig = s.meta.get("orig_key", key)
+        self.data.setdefault("region_override", {})[orig] = region
+        old_model = self._model_path(key)
+        self.save()
+        self._load_spectra()
+        new_key = next(k for k, sp in self.spectra.items() if sp.meta.get("orig_key", k) == orig)
+        if os.path.exists(old_model) and new_key != key:
+            os.replace(old_model, self._model_path(new_key))
+        self.results.pop(key, None)
+        return new_key
 
     def add_file(self, src: str, sample: str | None = None, copy: bool = True) -> list[str]:
         src = os.path.abspath(src)
@@ -264,9 +287,13 @@ class Project:
             os.remove(p)
         self.results.pop(key, None)
 
-    def new_model(self, key: str, preset_id: str | None = None, n_peaks: int = 1) -> RegionModel:
+    def new_model(self, key: str, preset_id: str | None = None, n_peaks: int | None = None) -> RegionModel:
+        """preset_id: a preset id, '__generic__' (automatic peak finding for any element), or None
+        (first preset for the region, else generic)."""
         s = self.spectra[key]
         sh = self.shift(s.sample)
+        if preset_id == "__generic__":
+            return presets.generic_model(s, sh, n_peaks)
         if preset_id:
             m = presets.model_from_preset(preset_id, s, sh, project_dir=self.root)
         else:

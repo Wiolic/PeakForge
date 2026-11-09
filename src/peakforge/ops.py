@@ -39,6 +39,19 @@ def list_presets(p: Project | None = None, region: str | None = None) -> list[di
     return out
 
 
+def set_region(p: Project, key: str, region: str) -> dict:
+    """Assign element / core level (e.g. 'Fe 2p', 'Fe 2p3/2', 'Ce 3d') to a spectrum."""
+    key = resolve_key(p, key)
+    new = p.set_region(key, region)
+    from . import presets
+    return dict(old_key=key, key=new, orbital=presets.orbital(p.spectra[new].region))
+
+
+def list_orbitals(element: str | None = None) -> list[dict]:
+    from . import presets
+    return [dict(region=k, **v) for k, v in presets.orbitals().items() if not element or v["element"] == element]
+
+
 def model_json(p: Project, key: str) -> dict:
     key = resolve_key(p, key)
     rec = p.get_model_record(key)

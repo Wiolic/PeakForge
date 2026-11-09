@@ -23,7 +23,40 @@ def orbitals() -> dict:
 
 
 def orbital(region: str) -> dict | None:
-    return orbitals().get(region)
+    """Core-level info for a region label.
+    'Fe 2p' → table entry; 'Fe 2p3/2' / 'Fe 2p1/2' → same level flagged subshell=True (single line,
+    no doublet; be shifted by the split for the low-j partner); 'Ta' → the element's main level."""
+    import re
+    if not region:
+        return None
+    tab = orbitals()
+    r = region.strip()
+    if r in tab:
+        return dict(tab[r])
+    m = re.match(r"^([A-Z][a-z]?) (\d[spdf])(\d/2)$", r)
+    if m and f"{m.group(1)} {m.group(2)}" in tab:
+        d = dict(tab[f"{m.group(1)} {m.group(2)}"])
+        d["subshell"] = True
+        sub = d.get("sub") or []
+        if sub and d.get("split") and r.endswith(sub[-1][len(m.group(2)):]):   # low-j partner scanned alone
+            d["be"] = d["be"] + d["split"]
+        d["level_split"] = d.get("split")
+        d["split"], d["ratio"], d["sub"] = None, None, None        # one line only → singlets
+        return d
+    if re.match(r"^[A-Z][a-z]?$", r):
+        mains = [v for v in tab.values() if v["element"] == r and v.get("main")]
+        if mains:
+            return dict(mains[0])
+    return None
+
+
+def orbital_choices() -> list[tuple[str, str]]:
+    """[(region key, display)] sorted by Z — for 'assign element / core level' pickers."""
+    out = []
+    for k, v in orbitals().items():
+        extra = f", Δ {v['split']} eV" if v.get("split") else ""
+        out.append((k, f"{v['z']:>2}  {k}   (~{v['be']:g} eV{extra})"))
+    return out
 
 
 def preset_dirs(project_dir: str | None = None) -> list[str]:
@@ -128,30 +161,135 @@ def scale_areas(m: RegionModel, sp: Spectrum, shift: float = 0.0):
         p.min = 0.0
 
 
-def generic_model(sp: Spectrum, shift: float = 0.0, n_peaks: int = 1) -> RegionModel:
-    """Starting model from orbital data: one singlet/doublet at the strongest feature."""
-    orb = orbital(sp.region) or {}
+def find_peaks_auto(x: np.ndarray, ys: np.ndarray, split: float | None = None, max_peaks: int = 4,
+                    min_rel: float = 0.08) -> list[tuple[float, float]]:
+    """Peaks of a background-subtracted spectrum → [(centre, fwhm)], strongest first.
+    With a spin–orbit `split`, a peak sitting at (stronger peak + split) is treated as its partner
+    and dropped, so each returned position is the main (lower-BE) line of one chemical state."""
+    from scipy.signal import find_peaks, peak_widths
+    o = np.argsort(x)
+    x, ys = x[o], ys[o]
+    if len(x) < 7:
+        return [(float(x[np.argmax(ys)]), 1.2)]
+    dx = float(np.median(np.diff(x))) or 0.1
+    k = max(3, int(round(0.4 / dx)) | 1)                     # ~0.4 eV smoothing window
+    sm = np.convolve(ys, np.ones(k) / k, mode="same")
+    top = float(sm.max())
+    if top <= 0:
+        return [(float(x[np.argmax(ys)]), 1.2)]
+    idx, prop = find_peaks(sm, prominence=min_rel * top, distance=max(1, int(0.5 / dx)))
+    if len(idx) == 0:
+        idx = np.array([int(np.argmax(sm))])
+    widths = peak_widths(sm, idx, rel_height=0.5)[0] * dx
+    cand = sorted(zip(idx, widths), key=lambda t: -sm[t[0]])
+    out: list[tuple[float, float]] = []
+    for i, w in cand:
+        c = float(x[i])
+        if split and any(abs(c - (oc + split)) < max(0.4, 0.25 * split) for oc, _ in out):
+            continue                                          # spin–orbit partner of an accepted peak
+        if split and any(abs(oc - (c + split)) < max(0.4, 0.25 * split) for oc, _ in out):
+            # accepted peak is actually the partner of this one (weaker main line can't happen for
+            # ratio < 1, but keep the lower-BE assignment consistent)
+            continue
+        out.append((c, float(np.clip(w, 0.5, 4.0))))
+        if len(out) >= max_peaks:
+            break
+    return out
+
+
+def generic_model(sp: Spectrum, shift: float = 0.0, n_peaks: int | None = None,
+                  refine: bool = True) -> RegionModel:
+    """Starting model for ANY element / core level: peaks found automatically in the data;
+    each one a spin–orbit doublet (tabulated split & area ratio) unless the region is an s level,
+    a single j sub-level scan (e.g. 'Fe 2p3/2') or a multiplet-dominated level (free singlets)."""
+    info = orbital(sp.region) or {}
     m = RegionModel(region=sp.region)
     _clip_range(m, sp, shift)
     auto_background(m, sp, shift)
     x = sp.be + shift
-    bg = bgmod.compute("shirley", x, sp.cps, m.background.lo, m.background.hi)
-    ys = sp.cps - bg
-    order = np.argsort(ys)[::-1]
-    centers = []
-    for i in order:
-        if all(abs(x[i] - c) > 1.5 for c in centers):
-            centers.append(float(x[i]))
-        if len(centers) >= n_peaks:
-            break
-    for i, c0 in enumerate(centers):
-        name = m.unique_name((sp.element or "p") + str(i + 1))
+    a, b = sorted(m.fit_range)
+    k = (x >= a) & (x <= b)
+    bg = bgmod.compute("shirley", x[k], sp.cps[k], m.background.lo, m.background.hi)
+    ys = sp.cps[k] - bg
+    doublet = bool(info.get("split")) and not info.get("subshell") and not info.get("complex")
+    split = info.get("split") if doublet else None
+    limit = n_peaks or (6 if info.get("complex") else 4)
+    peaks = find_peaks_auto(x[k], ys, split, max_peaks=limit)
+    if n_peaks:
+        peaks = peaks[:n_peaks]
+    el = sp.element or (info.get("element") or "p")
+    for i, (c0, w0) in enumerate(sorted(peaks)):
+        name = m.unique_name(f"{el}{i + 1}")
         comp = Component(name=name, label=name, shape="gl",
-                         params=dict(center=Param(c0, c0 - 2, c0 + 2), fwhm=Param(1.2, 0.3, 4.0),
-                                     m=Param(0.3, 0, 1, vary=False)))
-        if orb.get("split"):
-            comp.set_doublet(True, orb["split"], orb["ratio"])
-            comp.sub_labels = tuple(orb.get("sub") or ("", ""))
+                         params=dict(center=Param(c0, c0 - 1.5, c0 + 1.5),
+                                     fwhm=Param(w0, 0.3, max(4.0, w0 * 1.5)),
+                                     m=Param(0.3, 0.0, 1.0, vary=False)))
+        if doublet:
+            comp.set_doublet(True, info["split"], info["ratio"])
+            comp.sub_labels = tuple(info.get("sub") or ("", ""))
+            _link_split(m, comp, info["split"])
         m.components.append(comp)
+    m.note = info.get("note", "")
     scale_areas(m, sp, shift)
+    if refine:
+        m = refine_by_residual(m, sp, shift, doublet, info, max_add=max(0, limit - len(m.components)))
+    return m
+
+
+def _link_split(m: RegionModel, comp: Component, split: float):
+    """Spin–orbit splitting depends slightly on chemical state (e.g. Ti 2p: 6.1 metal, 5.7 oxide):
+    the first doublet gets it free within ±7 % of the table value, all others are linked to it."""
+    first = next((c for c in m.components if c.doublet), None)
+    if first is None:
+        if split < 1.0:                       # unresolvable next to typical widths: keep the table value
+            comp.params["split"] = Param(split, vary=False)
+        else:
+            d = 0.07 * split
+            comp.params["split"] = Param(split, split - d, split + d)
+    else:
+        comp.params["split"] = Param(first.params["split"].value, expr=f"{first.name}.split")
+
+
+def refine_by_residual(m: RegionModel, sp: Spectrum, shift: float, doublet: bool, info: dict,
+                       max_add: int = 3, rms_target: float = 2.0) -> RegionModel:
+    """Shoulders are invisible to peak search: fit, put a new component at the largest positive
+    residual, keep it only if BIC drops by > 10. Repeats up to max_add times."""
+    from .core.fit import apply_result, fit, prepare
+    prep = prepare(sp.be, sp.cps, m, shift)
+    best = fit(m, prep, n_starts=1)
+    apply_result(m, best)
+    el = sp.element or (info.get("element") or "p")
+    for _ in range(max_add):
+        if best.rms_pct < rms_target:
+            break
+        o = np.argsort(best.x)
+        x, res = best.x[o], best.residual[o]
+        k = max(3, int(round(0.5 / (np.median(np.diff(x)) or 0.1))) | 1)
+        sm = np.convolve(res, np.ones(k) / k, mode="same")
+        i = int(np.argmax(sm))
+        if sm[i] <= 0:
+            break
+        c0 = float(x[i])
+        if doublet:                       # residual may sit on a partner line: map back to the main line
+            s_ = info["split"]
+            near_main = min((abs(c0 - s_ - v["center"]) for v in best.values.values()), default=9)
+            if near_main < 0.5 and c0 - s_ >= x.min():
+                c0 -= s_
+        trial = m.copy()
+        w0 = float(np.median([c.params["fwhm"].value for c in m.components])) if m.components else 1.2
+        comp = Component(name=trial.unique_name(f"{el}{len(m.components) + 1}"), shape="gl",
+                         params=dict(center=Param(c0, c0 - 1.0, c0 + 1.0), fwhm=Param(w0, 0.3, 4.0),
+                                     m=Param(0.3, 0.0, 1.0, vary=False),
+                                     area=Param(max(float(sm[i]), 1e-9) * w0 * 1.06, 0.0)))
+        if doublet:
+            comp.set_doublet(True, info["split"], info["ratio"])
+            comp.sub_labels = tuple(info.get("sub") or ("", ""))
+            _link_split(trial, comp, info["split"])
+        trial.components.append(comp)
+        r = fit(trial, prepare(sp.be, sp.cps, trial, shift), n_starts=1)
+        if r.bic < best.bic - 10:
+            apply_result(trial, r)
+            m, best = trial, r
+        else:
+            break
     return m

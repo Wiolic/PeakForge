@@ -39,6 +39,9 @@ def run(project: str | None = None) -> int:
             old.deleteLater()
         holder["w"] = w
         w.show()
+        if old is None:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(300, w.show_disclaimer)
 
     if project is None and len(sys.argv) > 1 and sys.argv[1].endswith(".xpsproj"):
         project = sys.argv[1]

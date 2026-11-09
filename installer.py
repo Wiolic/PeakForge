@@ -1,4 +1,4 @@
-"""PeakForge 锻峰 — Windows installer (double-click this file).
+"""PeakForge — Windows installer (double-click this file).
 
 Creates a private virtual environment, installs PeakForge from this folder, and adds
 desktop / Start-menu shortcuts, a .xpsproj file association and an uninstaller.
@@ -48,11 +48,12 @@ def associate(pythonw: str, icon: str):
 class Installer(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("PeakForge 锻峰 — 安装 / Setup")
+        self.title("PeakForge — 安装 / Setup")
         self.geometry("640x460")
         f = ttk.Frame(self, padding=14)
         f.pack(fill="both", expand=True)
-        ttk.Label(f, text="PeakForge 锻峰  XPS 分析软件 / XPS analysis", font=("Microsoft YaHei", 14, "bold")).pack(anchor="w")
+        ttk.Label(f, text="PeakForge  XPS 分析软件 / XPS analysis", font=("Microsoft YaHei", 14, "bold")).pack(anchor="w")
+        ttk.Label(f, text="Developed by Eggy & Claude Opus 5.5", foreground="#6B7280").pack(anchor="w")
         ttk.Label(f, text=f"Python {sys.version.split()[0]}  ·  需要联网，约 600 MB，3–10 分钟 / needs internet, ~600 MB").pack(anchor="w", pady=(2, 10))
         row = ttk.Frame(f); row.pack(fill="x")
         ttk.Label(row, text="安装目录 / Folder:").pack(side="left")
@@ -121,16 +122,16 @@ class Installer(tk.Tk):
             icon = os.path.join(d, "peakforge.ico")
             shutil.copy(os.path.join(SRC, "src", "peakforge", "assets", "peakforge.ico"), icon)
             start_menu = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs", APP)
-            shortcut(os.path.join(start_menu, "PeakForge 锻峰.lnk"), pyw, "-m peakforge gui", icon, d)
+            shortcut(os.path.join(start_menu, "PeakForge.lnk"), pyw, "-m peakforge gui", icon, d)
             if self.desk.get():
                 desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-                shortcut(os.path.join(desktop, "PeakForge 锻峰.lnk"), pyw, "-m peakforge gui", icon, d)
+                shortcut(os.path.join(desktop, "PeakForge.lnk"), pyw, "-m peakforge gui", icon, d)
             if self.assoc.get():
                 associate(pyw, icon)
             unin = os.path.join(d, "uninstall_PeakForge.bat")
             with open(unin, "w", encoding="utf-8") as f:
                 f.write("@echo off\r\nchcp 65001 >nul\r\n"
-                        f'del "%USERPROFILE%\\Desktop\\PeakForge 锻峰.lnk" 2>nul\r\n'
+                        f'del "%USERPROFILE%\\Desktop\\PeakForge.lnk" 2>nul\r\n'
                         f'rmdir /s /q "{start_menu}" 2>nul\r\n'
                         'reg delete "HKCU\\Software\\Classes\\.xpsproj" /f >nul 2>nul\r\n'
                         'reg delete "HKCU\\Software\\Classes\\PeakForge.Project" /f >nul 2>nul\r\n'
