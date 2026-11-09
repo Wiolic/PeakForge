@@ -1,0 +1,136 @@
+{
+ "name_en": "Pt 4f – Pt⁰ / Pt²⁺ / Pt⁴⁺",
+ "name_zh": "Pt 4f（Pt⁰/Pt²⁺/Pt⁴⁺）",
+ "region": "Pt 4f",
+ "range": [
+  66.0,
+  82.0
+ ],
+ "background": {
+  "kind": "shirley"
+ },
+ "note_en": "Split 3.33 eV, area 4:3.",
+ "note_zh": "间距 3.33 eV，面积比 4:3。",
+ "components": [
+  {
+   "name": "Pt0",
+   "label": "Pt⁰",
+   "shape": "ds",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 71.1,
+     "min": 70.7,
+     "max": 71.6
+    },
+    "fwhm": {
+     "value": 0.6,
+     "min": 0.2,
+     "max": 1.3
+    },
+    "alpha": {
+     "value": 0.15,
+     "min": 0,
+     "max": 0.35
+    },
+    "gamma": {
+     "value": 0.4,
+     "min": 0.1,
+     "max": 1.2
+    },
+    "area": {
+     "value": 1000,
+     "min": 0
+    },
+    "split": {
+     "value": 3.33,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "Pt2",
+   "label": "Pt²⁺",
+   "shape": "gl",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 72.4,
+     "min": 71.9,
+     "max": 73.0
+    },
+    "fwhm": {
+     "value": 1.4,
+     "min": 0.8,
+     "max": 2.2
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    },
+    "area": {
+     "value": 500,
+     "min": 0
+    },
+    "split": {
+     "value": 3.33,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "Pt4",
+   "label": "Pt⁴⁺",
+   "shape": "gl",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 74.3,
+     "min": 73.6,
+     "max": 75.0
+    },
+    "fwhm": {
+     "value": 1.4,
+     "expr": "Pt2.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    },
+    "area": {
+     "value": 200,
+     "min": 0
+    },
+    "split": {
+     "value": 3.33,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  }
+ ],
+ "id": "pt4f_metal_oxide"
+}

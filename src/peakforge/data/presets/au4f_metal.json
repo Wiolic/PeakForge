@@ -1,0 +1,61 @@
+{
+ "name_en": "Au 4f – Au⁰",
+ "name_zh": "Au 4f 金属金",
+ "region": "Au 4f",
+ "range": [
+  80.0,
+  92.0
+ ],
+ "background": {
+  "kind": "shirley"
+ },
+ "note_en": "Au 4f7/2 = 84.0 eV is a common energy-scale reference.",
+ "note_zh": "Au 4f7/2 = 84.0 eV 常作能量标尺参考。",
+ "components": [
+  {
+   "name": "Au0",
+   "label": "Au⁰",
+   "shape": "ds",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 84.0,
+     "min": 83.6,
+     "max": 84.4
+    },
+    "fwhm": {
+     "value": 0.6,
+     "min": 0.2,
+     "max": 1.3
+    },
+    "alpha": {
+     "value": 0.05,
+     "min": 0,
+     "max": 0.3
+    },
+    "gamma": {
+     "value": 0.3,
+     "min": 0.1,
+     "max": 1.0
+    },
+    "area": {
+     "value": 1000,
+     "min": 0
+    },
+    "split": {
+     "value": 3.67,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  }
+ ],
+ "id": "au4f_metal"
+}

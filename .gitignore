@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+# instrument / test data never goes into the repo
+*.spe
+*.vms
+*.VGD
+*.vgp
+*.DATA/
+*.opju
+*.xpsproj
+2026.*/
+test_data/
+output/
+.claude/

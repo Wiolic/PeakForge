@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "peakforge"
+version = "0.1.0"
+description = "PeakForge (锻峰): XPS analysis desktop app — SPE/VMS import, constrained peak fitting, diagnostics, Origin export, MCP agent interface"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Wiolic" }]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+    "openpyxl>=3.1",
+    "PySide6>=6.5",
+    "mcp>=1.2",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[project.optional-dependencies]
+origin = ["originpro"]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "https://github.com/Wiolic/PeakForge"
+
+[project.scripts]
+peakforge = "peakforge.cli:main"
+
+[project.gui-scripts]
+peakforge-gui = "peakforge.gui.app:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+peakforge = ["data/*.json", "data/presets/*.json", "assets/*"]

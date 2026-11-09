@@ -1,0 +1,497 @@
+{
+ "_note": "be: typical BE (eV) of the main line; split: spin-orbit splitting (eV); ratio: area(high-j-1)/area(main). rsf: approximate Scofield cross-section (Al Ka, C 1s = 1, whole subshell) for rough quantification only — replace with your instrument's RSF library (e.g. PHI MultiPak) for real work. null = not tabulated, enter in the GUI.",
+ "orbitals": {
+  "C 1s": {
+   "be": 284.8,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": 1.0
+  },
+  "N 1s": {
+   "be": 400.0,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": 1.8
+  },
+  "O 1s": {
+   "be": 531.0,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": 2.93
+  },
+  "F 1s": {
+   "be": 685.0,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": 4.43
+  },
+  "Na 1s": {
+   "be": 1071.5,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": 8.52
+  },
+  "Al 2p": {
+   "be": 72.9,
+   "split": 0.44,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 0.537
+  },
+  "Si 2p": {
+   "be": 99.4,
+   "split": 0.61,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 0.817
+  },
+  "P 2p": {
+   "be": 130.0,
+   "split": 0.84,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 1.19
+  },
+  "S 2p": {
+   "be": 164.0,
+   "split": 1.18,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 1.68
+  },
+  "Cl 2p": {
+   "be": 199.0,
+   "split": 1.6,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 2.29
+  },
+  "K 2p": {
+   "be": 293.0,
+   "split": 2.8,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 3.97
+  },
+  "K 2s": {
+   "be": 377.0,
+   "split": null,
+   "ratio": null,
+   "sub": null,
+   "rsf": null
+  },
+  "Ca 2p": {
+   "be": 347.0,
+   "split": 3.55,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 5.07
+  },
+  "Ti 2p": {
+   "be": 458.8,
+   "split": 5.7,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 7.81
+  },
+  "V 2p": {
+   "be": 516.5,
+   "split": 7.4,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": null
+  },
+  "Cr 2p": {
+   "be": 574.2,
+   "split": 9.3,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 11.7
+  },
+  "Mn 2p": {
+   "be": 641.0,
+   "split": 11.6,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 13.9
+  },
+  "Fe 2p": {
+   "be": 707.0,
+   "split": 13.1,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 16.4
+  },
+  "Co 2p": {
+   "be": 778.2,
+   "split": 15.0,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 19.2
+  },
+  "Ni 2p": {
+   "be": 852.6,
+   "split": 17.3,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 22.2
+  },
+  "Cu 2p": {
+   "be": 932.6,
+   "split": 19.8,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 25.4
+  },
+  "Zn 2p": {
+   "be": 1021.8,
+   "split": 23.1,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": 28.8
+  },
+  "Ga 2p": {
+   "be": 1116.5,
+   "split": 26.9,
+   "ratio": 0.5,
+   "sub": [
+    "2p3/2",
+    "2p1/2"
+   ],
+   "rsf": null
+  },
+  "Ge 3d": {
+   "be": 29.3,
+   "split": 0.58,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Se 3d": {
+   "be": 55.5,
+   "split": 0.86,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Y 3d": {
+   "be": 155.8,
+   "split": 2.05,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Zr 3d": {
+   "be": 178.9,
+   "split": 2.43,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Nb 3d": {
+   "be": 202.3,
+   "split": 2.72,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Mo 3d": {
+   "be": 227.9,
+   "split": 3.13,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": 9.5
+  },
+  "Ru 3d": {
+   "be": 280.1,
+   "split": 4.17,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Rh 3d": {
+   "be": 307.2,
+   "split": 4.74,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Pd 3d": {
+   "be": 335.1,
+   "split": 5.26,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Ag 3d": {
+   "be": 368.2,
+   "split": 6.0,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": 18.0
+  },
+  "Cd 3d": {
+   "be": 405.0,
+   "split": 6.74,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "In 3d": {
+   "be": 443.9,
+   "split": 7.54,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Sn 3d": {
+   "be": 484.9,
+   "split": 8.41,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Sb 3d": {
+   "be": 528.2,
+   "split": 9.34,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Te 3d": {
+   "be": 573.0,
+   "split": 10.4,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "La 3d": {
+   "be": 835.0,
+   "split": 16.8,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Ce 3d": {
+   "be": 882.0,
+   "split": 18.6,
+   "ratio": 0.6667,
+   "sub": [
+    "3d5/2",
+    "3d3/2"
+   ],
+   "rsf": null
+  },
+  "Hf 4f": {
+   "be": 14.3,
+   "split": 1.66,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Ta 4f": {
+   "be": 21.9,
+   "split": 1.91,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "W 4f": {
+   "be": 31.4,
+   "split": 2.18,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": 9.8
+  },
+  "Re 4f": {
+   "be": 40.3,
+   "split": 2.43,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Os 4f": {
+   "be": 50.7,
+   "split": 2.71,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Ir 4f": {
+   "be": 60.9,
+   "split": 2.98,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Pt 4f": {
+   "be": 71.1,
+   "split": 3.33,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": 15.9
+  },
+  "Au 4f": {
+   "be": 84.0,
+   "split": 3.67,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": 17.1
+  },
+  "Hg 4f": {
+   "be": 99.9,
+   "split": 4.05,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Pb 4f": {
+   "be": 136.9,
+   "split": 4.86,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  },
+  "Bi 4f": {
+   "be": 156.9,
+   "split": 5.31,
+   "ratio": 0.75,
+   "sub": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "rsf": null
+  }
+ }
+}

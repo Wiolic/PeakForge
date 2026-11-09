@@ -1,0 +1,159 @@
+{
+ "name_en": "Ir 4f – Ir⁰ / Ir⁴⁺ / Ir³⁺ + satellite",
+ "name_zh": "Ir 4f 金属/氧化态（Ir⁰/Ir⁴⁺/Ir³⁺+卫星峰）",
+ "region": "Ir 4f",
+ "range": [
+  55.0,
+  75.0
+ ],
+ "background": {
+  "kind": "shirley"
+ },
+ "note_en": "Ir⁰ asymmetric DS; Ir⁴⁺ and Ir³⁺ share FWHM; 4f7/2–4f5/2 split 2.98 eV, area 4:3; satellite excluded from state fractions. Check component significance in Diagnostics before reporting Ir⁴⁺.",
+ "note_zh": "Ir⁰ 用不对称 DS 线形；Ir⁴⁺ 与 Ir³⁺ 共用 FWHM；4f7/2–4f5/2 间距 2.98 eV、面积比 4:3；卫星峰不计入价态占比。报告 Ir⁴⁺ 前先在诊断里看组分显著性。",
+ "components": [
+  {
+   "name": "Ir0",
+   "label": "Ir⁰",
+   "shape": "ds",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 60.9,
+     "min": 60.5,
+     "max": 61.3
+    },
+    "fwhm": {
+     "value": 0.5,
+     "min": 0.2,
+     "max": 1.2
+    },
+    "alpha": {
+     "value": 0.12,
+     "min": 0.0,
+     "max": 0.35
+    },
+    "gamma": {
+     "value": 0.4,
+     "min": 0.1,
+     "max": 1.2
+    },
+    "area": {
+     "value": 1000,
+     "min": 0
+    },
+    "split": {
+     "value": 2.98,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "Ir4",
+   "label": "Ir⁴⁺",
+   "shape": "pvoigt",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 61.8,
+     "min": 61.4,
+     "max": 62.3
+    },
+    "fwhm": {
+     "value": 1.2,
+     "min": 0.8,
+     "max": 2.0
+    },
+    "eta": {
+     "value": 0.3,
+     "min": 0.0,
+     "max": 0.6
+    },
+    "area": {
+     "value": 1000,
+     "min": 0
+    },
+    "split": {
+     "value": 2.98,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "Ir3",
+   "label": "Ir³⁺/Ir–OH",
+   "shape": "pvoigt",
+   "doublet": true,
+   "sub_labels": [
+    "4f7/2",
+    "4f5/2"
+   ],
+   "params": {
+    "center": {
+     "value": 62.5,
+     "min": 62.2,
+     "max": 63.2
+    },
+    "fwhm": {
+     "value": 1.2,
+     "expr": "Ir4.fwhm"
+    },
+    "eta": {
+     "value": 0.3,
+     "expr": "Ir4.eta"
+    },
+    "area": {
+     "value": 1000,
+     "min": 0
+    },
+    "split": {
+     "value": 2.98,
+     "vary": false
+    },
+    "ratio": {
+     "value": 0.75,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "Sat",
+   "label": "Satellite peak",
+   "shape": "gaussian",
+   "in_total": false,
+   "params": {
+    "center": {
+     "value": 67.0,
+     "min": 65.5,
+     "max": 69.0
+    },
+    "fwhm": {
+     "value": 2.5,
+     "min": 1.5,
+     "max": 4.0
+    },
+    "area": {
+     "value": 100,
+     "min": 0
+    }
+   }
+  }
+ ],
+ "id": "ir4f_metal_oxide"
+}

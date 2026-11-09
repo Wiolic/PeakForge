@@ -1,0 +1,98 @@
+{
+ "name_en": "C 1s – adventitious carbon (C–C, C–O, C=O, O–C=O)",
+ "name_zh": "C 1s 污染碳四峰",
+ "region": "C 1s",
+ "range": [
+  280.0,
+  292.0
+ ],
+ "background": {
+  "kind": "shirley"
+ },
+ "note_en": "Shared FWHM; use C–C at 284.8 eV for charge referencing.",
+ "note_zh": "四峰共用 FWHM；C–C 284.8 eV 可用于荷电校准。",
+ "components": [
+  {
+   "name": "CC",
+   "label": "C–C/C–H",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 284.8,
+     "min": 284.2,
+     "max": 285.4
+    },
+    "fwhm": {
+     "value": 1.2,
+     "min": 0.7,
+     "max": 2.0
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "CO",
+   "label": "C–O",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 286.3,
+     "min": 285.8,
+     "max": 286.9
+    },
+    "fwhm": {
+     "value": 1.2,
+     "expr": "CC.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "C_O",
+   "label": "C=O",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 287.8,
+     "min": 287.2,
+     "max": 288.3
+    },
+    "fwhm": {
+     "value": 1.2,
+     "expr": "CC.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  },
+  {
+   "name": "OCO",
+   "label": "O–C=O",
+   "shape": "gl",
+   "params": {
+    "center": {
+     "value": 288.9,
+     "min": 288.4,
+     "max": 289.6
+    },
+    "fwhm": {
+     "value": 1.2,
+     "expr": "CC.fwhm"
+    },
+    "m": {
+     "value": 0.3,
+     "vary": false
+    }
+   }
+  }
+ ],
+ "id": "c1s_adventitious"
+}
