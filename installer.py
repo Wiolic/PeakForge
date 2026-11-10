@@ -24,6 +24,20 @@ def _ps(cmd: str):
     subprocess.run(["powershell", "-NoProfile", "-Command", cmd], creationflags=NO_WINDOW, check=False)
 
 
+def desktop_dir() -> str:
+    """The real Desktop folder (it may be redirected, e.g. to D:\\Desktop or OneDrive)."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders") as k:
+            p = os.path.expandvars(winreg.QueryValueEx(k, "Desktop")[0])
+        if os.path.isdir(p):
+            return p
+    except OSError:
+        pass
+    return os.path.join(os.path.expanduser("~"), "Desktop")
+
+
 def shortcut(lnk: str, target: str, args: str, icon: str, workdir: str):
     os.makedirs(os.path.dirname(lnk), exist_ok=True)
     _ps(f"$s=(New-Object -ComObject WScript.Shell).CreateShortcut('{lnk}');"
@@ -124,14 +138,16 @@ class Installer(tk.Tk):
             start_menu = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs", APP)
             shortcut(os.path.join(start_menu, "PeakForge.lnk"), pyw, "-m peakforge gui", icon, d)
             if self.desk.get():
-                desktop = os.path.join(os.path.expanduser("~"), "Desktop")
+                desktop = desktop_dir()
                 shortcut(os.path.join(desktop, "PeakForge.lnk"), pyw, "-m peakforge gui", icon, d)
+            else:
+                desktop = desktop_dir()
             if self.assoc.get():
                 associate(pyw, icon)
             unin = os.path.join(d, "uninstall_PeakForge.bat")
             with open(unin, "w", encoding="utf-8") as f:
                 f.write("@echo off\r\nchcp 65001 >nul\r\n"
-                        f'del "%USERPROFILE%\\Desktop\\PeakForge.lnk" 2>nul\r\n'
+                        f'del "{os.path.join(desktop, "PeakForge.lnk")}" 2>nul\r\n'
                         f'rmdir /s /q "{start_menu}" 2>nul\r\n'
                         'reg delete "HKCU\\Software\\Classes\\.xpsproj" /f >nul 2>nul\r\n'
                         'reg delete "HKCU\\Software\\Classes\\PeakForge.Project" /f >nul 2>nul\r\n'
