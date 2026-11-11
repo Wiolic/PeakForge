@@ -123,6 +123,11 @@ T = {
     "model_not_saved": ("模型有错误，暂未保存：", "Model has errors and was not saved:"),
     "tables_filter": ("表格", "Tables"),
     "wiz_pts": ("点", "pts"),
+    # help window
+    "help_menu": ("使用指南", "User guide"), "help_title": ("使用指南", "Help"),
+    "help_gui": ("图形界面使用指南", "GUI guide"), "help_tutorial": ("零基础 XPS 拟合", "XPS fitting for beginners"),
+    "help_basics": ("XPS 基础讲义", "XPS basics"), "help_about": ("关于与免责声明", "About & disclaimer"),
+    "help_diag": ("诊断", "Diagnostics"),
     "unexpected": ("程序出错，详情已写入日志。可在“帮助 → 导出诊断包”发给开发者。",
                    "Unexpected error — details are in the log. Use Help → Export diagnostics bundle to report it."),
 }

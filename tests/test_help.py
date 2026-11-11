@@ -1,22 +1,23 @@
 """In-app help documents (src/peakforge/docs): zh/en pairs, structure, images, links, formulas, and the
-numbers quoted from the orbital table. The HelpWindow itself is tested separately (gui/help.py)."""
+numbers quoted from the orbital table; HelpWindow (gui/help.py) offscreen at the end."""
 from __future__ import annotations
 
 import json
 import os
 import re
+import sys
 
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "src", "peakforge", "docs")
 ORBITALS = os.path.join(ROOT, "src", "peakforge", "data", "orbitals.json")
+sys.path.insert(0, os.path.join(ROOT, "src"))
 
 PAIRS = [("XPS基础讲义.md", "XPS_basics_en.md"),
          ("零基础XPS拟合教程.md", "fitting_tutorial_en.md"),
          ("图形界面使用指南.md", "GUI_guide_en.md")]
-# Written in a later step of phase 3.5; links to them are allowed while they do not exist yet.
-PENDING = {"图形界面使用指南.md", "GUI_guide_en.md"}
+PENDING: set[str] = set()      # documents that may not exist yet (links to them are allowed)
 
 
 def _read(name: str) -> str:
@@ -36,7 +37,7 @@ def _strip_code(text: str) -> str:
 def test_pairs_exist_together(zh, en):
     a, b = (os.path.exists(os.path.join(DOCS, f)) for f in (zh, en))
     if zh in PENDING and not (a or b):
-        pytest.skip("GUI guide not written yet")
+        pytest.skip("not written yet")
     assert a and b, f"{zh} / {en}: both languages must exist"
 
 
@@ -107,3 +108,77 @@ def test_text_is_utf8_without_bom():
             raw = f.read()
         assert not raw.startswith(b"\xef\xbb\xbf"), name
         raw.decode("utf-8")
+
+
+# ---- HelpWindow (offscreen) -------------------------------------------------------------------------------------
+@pytest.fixture(scope="module")
+def qapp():
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+    return QApplication.instance() or QApplication([])
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_help_window_pages_and_language(qapp, lang, monkeypatch):
+    from peakforge.gui import help as H
+    from peakforge.gui import i18n
+    monkeypatch.setattr(i18n, "_lang", lang)
+    w = H.HelpWindow()
+    assert w.lang == lang
+    for key in ("gui", "tutorial", "basics", "about"):
+        w.show_tab(key)
+        assert w.current_key() == key
+    for key, r in w.readers.items():
+        assert r.toPlainText().strip(), key
+        assert os.path.exists(os.path.join(DOCS, H.doc_file(key, lang)))
+    w.close()
+
+
+def test_help_links_switch_pages(qapp):
+    from PySide6.QtCore import QUrl
+    from peakforge.gui import help as H
+    w = H.HelpWindow()
+    w.readers["tutorial"]._link(QUrl("XPS基础讲义.md"))
+    assert w.current_key() == "basics"
+    w.readers["basics"]._link(QUrl("GUI_guide_en.md"))
+    assert w.current_key() == "gui"
+    w.close()
+
+
+def test_render_math_replaces_formulas_and_keeps_bad_ones(qapp):
+    from peakforge.gui.help import render_math
+    bs = chr(92)
+    src = chr(10).join([f'a $E=h{bs}nu$ b', '', '$$x^2$$', '', '```', '$not$', '```', f'${bs}badcommand{{$'])
+    md, d = render_math(src)
+    assert md.count('![formula](') == 2 and '$not$' in md
+    names = __import__('re').findall(r'[(](pf_math_[0-9a-f]+[.]png)[)]', md)
+    assert len(names) == 2 and all((d / m).exists() for m in names)
+
+
+def test_main_window_shows_single_help_window(qapp, tmp_path):
+    from peakforge.gui.main_window import MainWindow
+    w = MainWindow()
+    w.show_help()
+    first = w._help
+    w.show_help("tutorial")
+    assert w._help is first and first.current_key() == "tutorial"
+    w.close()
+
+
+def test_reader_images_are_hidpi_and_clickable(qapp):
+    from PySide6.QtGui import QTextDocument
+    from PySide6.QtCore import QPointF, QUrl
+    from peakforge.gui import help as H
+    w = H.HelpWindow()
+    doc = w.readers["gui"].document()
+    im = doc.resource(QTextDocument.ResourceType.ImageResource, QUrl("images/gui_main.png"))
+    assert im is not None and not im.isNull()
+    assert im.width() / im.devicePixelRatio() <= H.MAX_W + 1      # shown at most MAX_W wide, at screen resolution
+    w.show()
+    qapp.processEvents()
+    r = w.readers["gui"]
+    vw, vh = r.viewport().width(), r.viewport().height()
+    r.verticalScrollBar().setValue(vh // 2)                   # hit test must account for scrolling
+    hits = {r.figure_at(QPointF(x, y)) for x in range(10, vw, 40) for y in range(10, vh, 20)}
+    assert "images/gui_main.png" in hits                           # a click there opens the full-size file
+    w.close()

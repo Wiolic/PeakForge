@@ -258,6 +258,7 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         m = mb.addMenu(tr("menu_agent"))
         self._act(m, tr("agent_connect"), lambda: AgentDialog(self.project, self).exec())
         m = mb.addMenu(tr("menu_help"))
+        self._act(m, tr("help_menu"), self.show_help, "F1")
         self._act(m, tr("disclaimer"), lambda: self.show_disclaimer(True))
         self._act(m, tr("validate"), self.validate_project)
         self._act(m, tr("diag_zip"), self.export_diagnostics)
@@ -309,6 +310,8 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
     def closeEvent(self, ev):
         from .tasks import shutdown_tasks
         shutdown_tasks()
+        if getattr(self, "_help", None) is not None:
+            self._help.close()
         super().closeEvent(ev)
 
     def set_theme(self, k):
@@ -325,6 +328,17 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         i18n.set_lang(code)
         if self.restart_cb:
             self.restart_cb(self.project.path if self.project else None)
+
+    def show_help(self, tab: str | None = None):
+        """One non-modal HelpWindow per main window; opening it again brings it to the front."""
+        from .help import HelpWindow
+        if getattr(self, "_help", None) is None or self._help.lang != i18n.lang():
+            self._help = HelpWindow(self)
+        if isinstance(tab, str):
+            self._help.show_tab(tab)
+        self._help.show()
+        self._help.raise_()
+        self._help.activateWindow()
 
     def about(self):
         disc = DISCLAIMER_ZH if i18n.lang() == "zh" else DISCLAIMER_EN

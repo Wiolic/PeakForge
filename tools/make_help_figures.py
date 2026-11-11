@@ -45,7 +45,7 @@ def be_axis(ax, label=True):
 
 
 def save(fig, name):
-    fig.savefig(os.path.join(OUT, name), dpi=110)
+    fig.savefig(os.path.join(OUT, name), dpi=220)   # 2x: the help reader shows images at half size (gui/help.py IMG_SCALE)
     print("wrote", name)
 
 

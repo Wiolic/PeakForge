@@ -12,6 +12,9 @@ Free · open source · point-and-click · or hand the whole analysis to an AI ag
 <a href="QUICKSTART_en.md"><b>Quickstart</b></a> ·
 <a href="#reading-the-results">Reading results</a> ·
 <a href="docs/METHODS_en.md">Methods</a> ·
+<a href="src/peakforge/docs/GUI_guide_en.md">GUI guide</a> ·
+<a href="src/peakforge/docs/fitting_tutorial_en.md">Fitting tutorial</a> ·
+<a href="src/peakforge/docs/XPS_basics_en.md">XPS basics</a> ·
 <a href="#disclaimer">Disclaimer</a></p>
 
 ![PeakForge main window](docs/images/gui_main.png)

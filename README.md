@@ -12,6 +12,9 @@
 <a href="QUICKSTART.md"><b>Quickstart（零基础上手）</b></a> ·
 <a href="#读懂结果">读懂结果</a> ·
 <a href="docs/METHODS.md">方法说明</a> ·
+<a href="src/peakforge/docs/图形界面使用指南.md">界面指南</a> ·
+<a href="src/peakforge/docs/零基础XPS拟合教程.md">拟合教程</a> ·
+<a href="src/peakforge/docs/XPS基础讲义.md">XPS 基础讲义</a> ·
 <a href="#免责声明">免责声明</a></p>
 
 ![PeakForge 主界面](docs/images/gui_main.png)

@@ -133,6 +133,9 @@ class Installer(tk.Tk):
             self.run([py, "-m", "pip", "install", "--upgrade", "pip"])
             spec = SRC + ("[origin]" if self.origin.get() else "")
             self.run([py, "-m", "pip", "install", "--upgrade", spec])
+            ex_src, ex_dst = os.path.join(SRC, "examples"), os.path.join(d, "examples")
+            if os.path.isdir(ex_src):                       # synthetic demo data used by the tutorial
+                shutil.copytree(ex_src, ex_dst, dirs_exist_ok=True)
             icon = os.path.join(d, "peakforge.ico")
             shutil.copy(os.path.join(SRC, "src", "peakforge", "assets", "peakforge.ico"), icon)
             start_menu = os.path.join(os.environ["APPDATA"], r"Microsoft\Windows\Start Menu\Programs", APP)
