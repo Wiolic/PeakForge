@@ -114,6 +114,9 @@ T = {
     "validate_title": ("工程检查：{e} 个错误，{w} 个警告", "Project check: {e} error(s), {w} warning(s)"),
     "model_invalid": ("模型文件有错误，未载入（请重新应用预设或修正文件）：",
                       "The model file has errors and was not loaded (re-apply a preset or fix the file):"),
+    "model_not_saved": ("模型有错误，暂未保存：", "Model has errors and was not saved:"),
+    "tables_filter": ("表格", "Tables"),
+    "wiz_pts": ("点", "pts"),
     "unexpected": ("程序出错，详情已写入日志。可在“帮助 → 导出诊断包”发给开发者。",
                    "Unexpected error — details are in the log. Use Help → Export diagnostics bundle to report it."),
 }

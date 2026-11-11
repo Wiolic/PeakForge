@@ -347,3 +347,77 @@ def test_excepthook_logs(monkeypatch):
     except RuntimeError:
         sys.excepthook(*sys.exc_info())
     assert seen and "boom-for-test" in seen[0]
+
+
+# ------------------------------------------------------------------ phase-2 review fixes
+def test_corrupt_excel_is_skipped_not_fatal(tmp_path):
+    p, key = _proj_with_spectrum(tmp_path)
+    bad = os.path.join(p.root, "data", "raw", "broken.xlsx")
+    with open(bad, "wb") as f:
+        f.write(b"PK\x03\x04 not really a zip")
+    with pytest.raises(ReadError):
+        read_file(bad)
+    p.data["files"].append(dict(path="data/raw/broken.xlsx", sample="B"))
+    p.data["samples"]["B"] = dict(shift=0.0)
+    p.save()
+    p2 = Project.open(p.path)                       # opens; the broken file is flagged
+    assert key in p2.spectra
+    assert any(f.get("error") for f in p2.data["files"])
+
+
+def test_null_bounds_build_the_same_model():
+    from peakforge.core.model import Param
+    q = Param.from_json({"value": 1.0, "min": None, "max": None})
+    assert q.min == -np.inf and q.max == np.inf
+    d = _m()
+    d["components"][0]["params"]["fwhm"] = {"value": 1.0, "min": None, "max": 3}
+    assert schema.check_model(d, "m").ok
+    schema.model_from_json_checked(d)
+
+
+def test_invalid_model_does_not_abort_export_or_quant(tmp_path):
+    from peakforge.export.exporter import fitted_items
+    p, key = _proj_with_spectrum(tmp_path)
+    p.set_model(key, p.new_model(key, "__generic__"))
+    rec = p.get_model_record(key)
+    rec["model"]["components"][0]["shape"] = "nope"
+    with open(p._model_path(key), "w", encoding="utf-8") as f:
+        json.dump(rec, f)
+    assert fitted_items(p) == []
+    q = p.quantify()
+    assert q and q[0]["area_source"].startswith("raw")
+
+
+def test_bad_template_only_breaks_its_files(tmp_path):
+    p, key = _proj_with_spectrum(tmp_path)
+    p.data["formats"] = {"bad": dict(base="table", x=0, intensity="cnts")}
+    p.save()
+    p2 = Project.open(p.path)
+    assert key in p2.spectra and any("bad" in w for w in p2.validation.warnings())
+    assert Project.create(str(tmp_path / "other"), "o").validation is None
+
+
+def test_cp1252_header_not_read_as_chinese(tmp_path):
+    from peakforge.io.table import text_encoding
+    f = tmp_path / "w.csv"
+    with open(f, "w", encoding="cp1252") as fh:
+        fh.write("Binding energy (eV),Intensity (µA) Å°\n1,2\n2,3\n")
+    assert text_encoding(str(f)) == "cp1252"
+    g = tmp_path / "c.csv"
+    with open(g, "w", encoding="gb18030") as fh:
+        fh.write("结合能（eV），强度\n1,2\n")
+    assert text_encoding(str(g)) == "gb18030"
+
+
+def test_preset_cache_tracks_file_changes(tmp_path):
+    p = Project.create(str(tmp_path / "proj"), "t")
+    f = os.path.join(p.root, "presets", "mine.json")
+    good = dict(id="mine", region="Ir 4f", components=[dict(name="A", shape="gl")])
+    with open(f, "w", encoding="utf-8") as fh:
+        json.dump(good, fh)
+    assert "mine" in presets.list_presets(p.root)
+    presets.list_presets(p.root)["mine"]["region"] = "changed"      # callers get copies
+    assert presets.list_presets(p.root)["mine"]["region"] == "Ir 4f"
+    with open(f, "w", encoding="utf-8") as fh:
+        json.dump(dict(good, components=[dict(name="A", shape="nope")], note="x" * 10), fh)
+    assert "mine" not in presets.list_presets(p.root)

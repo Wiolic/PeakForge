@@ -418,7 +418,7 @@ class MainWindow(QMainWindow):
                 return
         if not files:
             files, _ = QFileDialog.getOpenFileNames(self, tr("import_mapped"), "",
-                                                    "Tables (*.csv *.txt *.dat *.xy *.xlsx *.xls *.xlsm);;All files (*)")
+                                                    f"{tr('tables_filter')} (*.csv *.txt *.dat *.xy *.xlsx *.xls *.xlsm);;All files (*)")
             if not files:
                 return
         new = tr("wiz_title") + "…"
@@ -603,8 +603,8 @@ class MainWindow(QMainWindow):
                 prep = p.prepared(key, self.model)
                 if res is None:
                     res = run_fit(self.model, prep, optimize=False)
-            except (ValueError, KeyError, FloatingPointError) as e:
-                log.warning("evaluate %s: %s", key, e)
+            except Exception as e:      # noqa: BLE001 — shown in the log panel; the plot shows the data only
+                log.warning("evaluate %s: %s", key, e, exc_info=True)
                 self.say(f"evaluate: {e}")
                 res = None
         title = f"{p.sample_label(s.sample)} · {s.region}"
@@ -654,6 +654,12 @@ class MainWindow(QMainWindow):
 
     def _store(self, push_undo=True):
         if self.key is None or self.model is None:
+            return
+        from .. import schema
+        s = self.project.spectra[self.key]
+        rep = schema.check_model(self.model.to_json(), "model", s, self.project.shift(s.sample))
+        if not rep.ok:          # keep the edit in memory; saving it would make the model unloadable
+            self.say("⚠ " + tr("model_not_saved") + " " + "; ".join(rep.errors()))
             return
         if push_undo:
             rec = self.project.get_model_record(self.key)

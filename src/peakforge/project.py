@@ -58,6 +58,7 @@ class Project:
         self.results: dict[str, FitResult] = {}
         self.charge_failures: dict[str, str] = {}
         self.model_reports: dict = {}           # key -> schema.Report of the last get_model()
+        self.validation = None                  # schema.Report from Project.open()
         self._load_spectra()
 
     # ------------------------------------------------------------------ create / open / save
@@ -421,7 +422,11 @@ class Project:
                     continue
                 area = None
                 src = "raw"
-                m = self.get_model(k) if use_fit else None
+                try:
+                    m = self.get_model(k) if use_fit else None
+                except ValueError as e:     # SchemaError: fall back to the raw area for this spectrum
+                    log.warning("quantify: model of %s ignored: %s", k, e)
+                    m, src = None, "raw (model invalid)"
                 if m is not None:
                     r = self.result(k)
                     if r is not None:

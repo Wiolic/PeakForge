@@ -50,17 +50,43 @@ def _frames(path: str) -> list[tuple[str, pd.DataFrame]]:
 
 
 def text_encoding(path: str) -> str:
-    """UTF-8 (with or without BOM) if the file decodes as such, else GB18030 (Chinese Windows /
-    Excel 'CSV'), else Latin-1. Only header text depends on this; numbers are ASCII in all three."""
+    """UTF-8 (with or without BOM) if the file decodes as such; else GBK/GB18030 (Chinese Windows /
+    Excel 'CSV') when the bytes look like double-byte Chinese text; else cp1252 (Western Windows:
+    °, µ, Å). Only header text depends on this; numbers are ASCII in all of them."""
     with open(path, "rb") as f:
         raw = f.read()
-    for enc in ("utf-8-sig", "gb18030"):
+    try:
+        raw.decode("utf-8-sig")
+        return "utf-8-sig"
+    except UnicodeDecodeError:
+        pass
+    if _looks_gbk(raw):
         try:
-            raw.decode(enc)
-            return enc
+            raw.decode("gb18030")
+            return "gb18030"
         except UnicodeDecodeError:
+            pass
+    try:
+        raw.decode("cp1252")
+        return "cp1252"
+    except UnicodeDecodeError:
+        return "latin-1"
+
+
+def _looks_gbk(raw: bytes) -> bool:
+    """GB2312/GBK Chinese text: every byte ≥ 0x81 starts a pair whose trail byte is also ≥ 0x80.
+    Single-byte Western text (cp1252 'µA', '° ') has high bytes followed by ASCII."""
+    i, n, pairs = 0, len(raw), 0
+    while i < n:
+        b = raw[i]
+        if b < 0x80:
+            i += 1
             continue
-    return "latin-1"
+        if b == 0x80 or b == 0xFF or i + 1 >= n or raw[i + 1] < 0x80 or raw[i + 1] == 0xFF:
+            return False
+        pairs += 1
+        i += 2
+    return pairs > 0
 
 
 def _first_numeric_row(df: pd.DataFrame) -> int:

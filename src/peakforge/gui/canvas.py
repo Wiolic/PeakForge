@@ -239,7 +239,7 @@ class SpectrumView(QWidget):
         try:
             self.prep = prepare(x, y, self.model, 0.0, acq_time=self.prep.acq_time)
             self.res = fit(self.model, self.prep, optimize=False)
-        except (ValueError, KeyError, FloatingPointError, np.linalg.LinAlgError) as e:   # mid-drag states
+        except Exception as e:      # noqa: BLE001 — transient mid-drag states (empty window, bad bounds)
             log.debug("live update skipped: %s", e)
             return
         self.redraw()

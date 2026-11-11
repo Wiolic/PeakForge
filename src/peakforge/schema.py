@@ -418,8 +418,9 @@ def check_project_data(data: dict, fname: str, root: str | None = None) -> Repor
     if not isinstance(formats, dict):
         rep.err(f"{fname}.formats", "must be an object {name: template}")
         formats = {}
-    for name, tpl in formats.items():
-        rep.extend(check_template(tpl, f"{fname}.formats.{name}"))
+    for name, tpl in formats.items():       # only the files using it fail → warning here; the read
+        for lv, w, m in check_template(tpl, f"{fname}.formats.{name}").items:   # error is reported per file
+            rep.warn(w, m + " (files using this template cannot be read)")
     seen = set()
     for i, f in enumerate(files):
         fw = f"{fname}.files[{i}]"

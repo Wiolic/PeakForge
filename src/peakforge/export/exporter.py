@@ -10,6 +10,7 @@ from ..core import quant
 from .curves import component_table, curve_table
 from .figure import save_fit_figure, save_panel_figure, save_stack_figure
 from .origin import export_origin
+from ..logs import log
 
 
 def _safe(s: str) -> str:
@@ -19,7 +20,11 @@ def _safe(s: str) -> str:
 def fitted_items(project, keys=None):
     out = []
     for k in keys or project.keys(narrow_only=True):
-        m = project.get_model(k)
+        try:
+            m = project.get_model(k)
+        except ValueError as e:         # SchemaError: invalid model file → skip this spectrum
+            log.warning("export: skipping %s: %s", k, e)
+            continue
         if m is None:
             continue
         r = project.result(k)

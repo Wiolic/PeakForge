@@ -157,7 +157,7 @@ class ColumnWizard(QDialog):
         except (ReadError, ValueError) as e:
             self.out.setPlainText("✗ " + err_text(e))
             return False
-        lines = [f"✓ {r['region']}: {r['npts']} pts, {r['be_min']:.2f}–{r['be_max']:.2f} eV (BE), "
+        lines = [f"✓ {r['region']}: {r['npts']} {tr('wiz_pts')}, BE {r['be_min']:.2f}–{r['be_max']:.2f} eV, "
                  f"I {r['y_min']:.4g}–{r['y_max']:.4g}"
                  + (f", t = {r['acq_time']:g} s" if r["acq_time"] else "") for r in res]
         self.out.setPlainText("\n".join(lines))

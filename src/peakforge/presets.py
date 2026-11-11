@@ -68,17 +68,36 @@ def preset_dirs(project_dir: str | None = None) -> list[str]:
     return d
 
 
+_CHECKED: dict[str, tuple[float, int, dict | None]] = {}     # path -> (mtime, size, preset or None)
+
+
+def _load_checked(f: str) -> dict | None:
+    """Read + validate a preset file once per (mtime, size); None when it has errors."""
+    try:
+        st = os.stat(f)
+    except OSError:
+        return None
+    hit = _CHECKED.get(f)
+    if hit and hit[:2] == (st.st_mtime, st.st_size):
+        return None if hit[2] is None else dict(hit[2])
+    from . import schema
+    rep = schema.Report()
+    p = schema.load_json(f, rep)
+    if p is not None:
+        rep.extend(schema.check_preset(p, os.path.basename(f)))
+    if not rep.ok:
+        log.warning("preset %s skipped: %s", f, rep.text())
+        p = None
+    _CHECKED[f] = (st.st_mtime, st.st_size, p)
+    return None if p is None else dict(p)
+
+
 def list_presets(project_dir: str | None = None) -> dict[str, dict]:
     out = {}
     for d in preset_dirs(project_dir):
         for f in sorted(glob.glob(os.path.join(d, "*.json"))):
-            from . import schema
-            rep = schema.Report()
-            p = schema.load_json(f, rep)
-            if p is not None:
-                rep.extend(schema.check_preset(p, os.path.basename(f)))
-            if not rep.ok:
-                log.warning("preset %s skipped: %s", f, rep.text())
+            p = _load_checked(f)
+            if p is None:
                 continue
             pid = p.get("id") or os.path.splitext(os.path.basename(f))[0]
             p["id"] = pid

@@ -62,8 +62,9 @@ class Param:
             if len(v) == 1:
                 return cls(float(v[0]), vary=False)
             return cls(float(v[0]), float(v[1]), float(v[2]))
-        return cls(float(v.get("value", 0.0)), float(v.get("min", -np.inf)),
-                   float(v.get("max", np.inf)), bool(v.get("vary", True)), v.get("expr") or None)
+        lo, hi = v.get("min"), v.get("max")          # null = unbounded (same as schema.py)
+        return cls(float(v.get("value") or 0.0), -np.inf if lo is None else float(lo),
+                   np.inf if hi is None else float(hi), bool(v.get("vary", True)), v.get("expr") or None)
 
 
 @dataclass

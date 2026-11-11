@@ -12,7 +12,6 @@ A new format needs only a new Reader appended to ``REGISTRY``.
 from __future__ import annotations
 
 import os
-import struct
 
 from ..spectrum import Spectrum
 
@@ -171,7 +170,8 @@ def read_file(path: str, fmt: str | None = None, templates: dict | None = None,
         sps = BY_NAME[rname].read(path, template=template)
     except ReadError:
         raise
-    except (ValueError, KeyError, IndexError, OSError, UnicodeDecodeError, struct.error) as e:
+    except Exception as e:      # noqa: BLE001 — any reader failure (BadZipFile, struct.error, missing
+        # openpyxl, ...) is a per-file problem: callers skip the file instead of failing the project
         raise ReadError(f"{name}: could not be read as {rname}: {e}",
                         f"{name}：按 {BY_NAME[rname].label[0]} 读入失败：{e}") from e
     for s in sps:
