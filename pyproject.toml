@@ -44,7 +44,7 @@ peakforge-gui = "peakforge.gui.app:run"
 where = ["src"]
 
 [tool.setuptools.package-data]
-peakforge = ["data/*.json", "data/presets/*.json", "assets/*"]
+peakforge = ["data/*.json", "data/presets/*.json", "assets/*", "docs/*.md", "docs/images/*.png"]
 
 [tool.ruff]
 line-length = 130
