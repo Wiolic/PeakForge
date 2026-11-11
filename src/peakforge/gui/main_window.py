@@ -40,6 +40,7 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         self.undo: dict[str, list] = {}
         self.redo: dict[str, list] = {}
         self._own_write = 0.0
+        self._reload_pending = False
         self.setWindowTitle(f"{APP_NAME} {__version__}")
         if os.path.exists(ICON):
             self.setWindowIcon(QIcon(ICON))

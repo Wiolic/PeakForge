@@ -341,20 +341,11 @@ class Project:
         """preset_id: a preset id, '__generic__' (automatic peak finding for any element), or None
         (first preset for the region, else generic)."""
         s = self.spectra[key]
-        sh = self.shift(s.sample)
-        if preset_id == "__generic__":
-            return presets.generic_model(s, sh, n_peaks)
-        if preset_id:
-            m = presets.model_from_preset(preset_id, s, sh, project_dir=self.root)
-        else:
-            cands = presets.presets_for(s.region, self.root)
-            m = (presets.model_from_preset(cands[0], s, sh, project_dir=self.root) if cands
-                 else presets.generic_model(s, sh, n_peaks))
-        return m
+        return build_model(s, self.shift(s.sample), self.root, preset_id, n_peaks)
 
     def prepared(self, key: str, model: RegionModel):
         s = self.spectra[key]
-        return prepare(s.be, s.cps, model, self.shift(s.sample), acq_time=s.acq_time())
+        return prepare_for(s, self.shift(s.sample), model)
 
     def fit_inputs(self, key: str, model: RegionModel | None = None):
         """(model, prepared data) for a fit of `key`; validates the model. Reads the project only, so the GUI
@@ -391,7 +382,8 @@ class Project:
         return self.results.get(key) or self.evaluate(key)
 
     # ------------------------------------------------------------------ batch
-    def _batch_model(self, src: RegionModel, key: str, fix: tuple[str, ...]) -> RegionModel:
+    def batch_model(self, src: RegionModel, key: str, fix: tuple[str, ...]) -> RegionModel:
+        """Copy of `src` for spectrum `key`: `fix` parameters frozen, areas rescaled to the target."""
         m = src.copy()
         for _key, c, pn, p in m.param_items():
             if pn in fix and not p.expr:
@@ -399,13 +391,6 @@ class Project:
         s = self.spectra[key]
         presets.scale_areas(m, s, self.shift(s.sample))
         return m
-
-    def batch_inputs(self, source_key: str, target_keys: list[str], fix: tuple[str, ...] = ()):
-        """[(key, model, prepared)] for batch_apply, without fitting (GUI: run the fits in a worker)."""
-        src = self.get_model(source_key)
-        if src is None:
-            raise ValueError(f"No model for {source_key}")
-        return [(k, *self.fit_inputs(k, self._batch_model(src, k, fix))) for k in target_keys if k != source_key]
 
     def batch_apply(self, source_key: str, target_keys: list[str], fix: tuple[str, ...] = (),
                     n_starts: int = 3) -> list[dict]:
@@ -418,7 +403,7 @@ class Project:
         for k in target_keys:
             if k == source_key:
                 continue
-            m2, r = self.fit(k, self._batch_model(src, k, fix), n_starts=n_starts)
+            m2, r = self.fit(k, self.batch_model(src, k, fix), n_starts=n_starts)
             rows.append(dict(key=k, rms_pct=r.rms_pct, fractions=r.fractions, bound_hits=r.bound_hits))
         return rows
 
@@ -434,7 +419,9 @@ class Project:
         self.settings.setdefault("rsf", {})[region] = float(value)
         self.save()
 
-    def quantify(self, samples: list[str] | None = None, use_fit: bool = True) -> list[dict]:
+    def quantify(self, samples: list[str] | None = None, use_fit: bool = True,
+                 results: dict | None = None) -> list[dict]:
+        """results: optional {key: FitResult} the caller already evaluated (avoids evaluating twice)."""
         entries = []
         for smp in samples or self.samples():
             for k in self.keys(sample=smp, narrow_only=True):
@@ -449,7 +436,7 @@ class Project:
                     log.warning("quantify: model of %s ignored: %s", k, e)
                     m, src = None, "raw (model invalid)"
                 if m is not None:
-                    r = self.result(k)
+                    r = (results or {}).get(k) or self.result(k)
                     if r is not None:
                         area = float(sum(r.areas[c.name] for c in m.components if c.in_total))
                         src = "fit"
@@ -476,6 +463,23 @@ class Project:
                 item["stale"] = rec.get("result_stale", False)
             out["spectra"].append(item)
         return out
+
+
+def build_model(s, sh: float, root: str, preset_id: str | None = None, n_peaks: int | None = None) -> RegionModel:
+    """New model for spectrum `s` at charge shift `sh` (Project.new_model without the Project, so a worker
+    thread can build it from a spectrum reference taken in the UI thread)."""
+    if preset_id == "__generic__":
+        return presets.generic_model(s, sh, n_peaks)
+    if preset_id:
+        return presets.model_from_preset(preset_id, s, sh, project_dir=root)
+    cands = presets.presets_for(s.region, root)
+    return (presets.model_from_preset(cands[0], s, sh, project_dir=root) if cands
+            else presets.generic_model(s, sh, n_peaks))
+
+
+def prepare_for(s, sh: float, model: RegionModel):
+    """Prepared data of spectrum `s` for `model` (Project.prepared without the Project)."""
+    return prepare(s.be, s.cps, model, sh, acq_time=s.acq_time())
 
 
 def _jsonable(o):

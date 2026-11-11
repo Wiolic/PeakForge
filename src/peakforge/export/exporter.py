@@ -42,7 +42,7 @@ def snapshot(project, keys=None, with_quant: bool = True) -> dict:
     items = fitted_items(project, keys)
     return dict(items=items,
                 shifts={k: project.shift(project.spectra[k].sample) for k, *_ in items},
-                quant=project.quantify() if with_quant else [],
+                quant=project.quantify(results={k: r for k, _s, _g, _m, r in items}) if with_quant else [],
                 sample_labels={e_s: project.sample_label(e_s) for e_s in project.samples()},
                 name=project.name, charge_ref=project.settings.get("charge_ref", 284.8),
                 theme=project.settings.get("theme", "glacier"))

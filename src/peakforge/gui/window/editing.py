@@ -87,14 +87,15 @@ class EditMixin:
         self.metric_lbl.setText(msg + "   ")
 
     def _store(self, push_undo=True):
+        """Save the current model; False when it was refused (invalid: kept in memory only)."""
         if self.key is None or self.model is None:
-            return
+            return True
         from ... import schema
         s = self.project.spectra[self.key]
         rep = schema.check_model(self.model.to_json(), "model", s, self.project.shift(s.sample))
         if not rep.ok:          # keep the edit in memory; saving it would make the model unloadable
             self.say("⚠ " + tr("model_not_saved") + " " + "; ".join(rep.errors()))
-            return
+            return False
         if push_undo:
             rec = self.project.get_model_record(self.key)
             self.undo.setdefault(self.key, []).append(rec["model"] if rec else None)
@@ -102,6 +103,7 @@ class EditMixin:
         self._mark_write()
         self.project.set_model(self.key, self.model)
         self.project.results.pop(self.key, None)
+        return True
 
     def _panel_changed(self):
         self._store()

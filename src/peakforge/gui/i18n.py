@@ -163,7 +163,7 @@ def set_lang(code: str):
     save_setting("lang", code)
 
 
-def tr(key: str, **kw) -> str:
+def tr(key: str, /, **kw) -> str:
     v = T.get(key)
     if v is None:
         return key

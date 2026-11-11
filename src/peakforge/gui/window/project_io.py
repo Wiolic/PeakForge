@@ -63,12 +63,18 @@ class ProjectMixin:
         self._reload_timer.start()
 
     def _external_reload(self):
-        if self.project is None or time.time() < self._own_write:
+        if self.project is None:
             return
         from ..tasks import active
         if active():        # a background job is working on copies: reload after it has written back
+            self._reload_pending = True
             self._reload_timer.start()
             return
+        if time.time() < self._own_write:
+            if self._reload_pending:      # an external change waited for a job: retry after our own write
+                self._reload_timer.start()
+            return
+        self._reload_pending = False
         key = self.key
         try:
             self.project.reload()

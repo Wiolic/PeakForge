@@ -82,6 +82,7 @@ class _Relay(QObject):
 
 _RUNNING: list = []     # (thread, worker, relay, handle): removed only after the thread has really ended
 _ACTIVE: list = []      # jobs in the UI thread that have not reported yet
+_BUTTONS: dict = {}     # id(button) -> number of running tasks that disabled it
 
 
 def active() -> bool:
@@ -133,9 +134,8 @@ def run_task(parent, fn, on_done, busy_text=None, button_=None, progress=False, 
     job["cancel"] = lambda: (handle.cancel(), _show_status(status))
     wk = _Worker(fn, handle, progress)
     wk.moveToThread(th)
-    old_text = None
-    if button_ is not None:
-        old_text = button_.text()
+    if button_ is not None:          # several tasks may share a button: re-enable after the last one
+        _BUTTONS[id(button_)] = _BUTTONS.get(id(button_), 0) + 1
         button_.setEnabled(False)
     _ACTIVE.append(job)
     _show_status(status)
@@ -151,9 +151,14 @@ def run_task(parent, fn, on_done, busy_text=None, button_=None, progress=False, 
         _show_status(status)
         th.quit()
         QApplication.restoreOverrideCursor()
-        if _alive(button_):
-            button_.setEnabled(True)
-            button_.setText(old_text)
+        if button_ is not None:
+            left = _BUTTONS.get(id(button_), 1) - 1
+            if left > 0:
+                _BUTTONS[id(button_)] = left
+            else:
+                _BUTTONS.pop(id(button_), None)
+                if _alive(button_):
+                    button_.setEnabled(True)
 
     def call(cb, *a):
         """A callback that meets a widget deleted while the task ran is only logged."""
@@ -236,6 +241,7 @@ def shutdown_tasks(timeout_ms: int = 10000) -> None:
             if th.wait(max(0, int((deadline - time.monotonic()) * 1000))) and entry in _RUNNING:
                 _RUNNING.remove(entry)
         except RuntimeError:          # C++ object already deleted
+            log.debug("shutdown_tasks: thread object already deleted", exc_info=True)
             if entry in _RUNNING:
                 _RUNNING.remove(entry)
     if _RUNNING:
