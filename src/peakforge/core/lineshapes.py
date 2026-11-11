@@ -34,11 +34,11 @@ SHAPES: dict[str, dict] = {
 }
 
 
-def _gauss(u, w):
+def _gauss(u: np.ndarray, w: float) -> np.ndarray:
     return np.sqrt(4 * LN2 / np.pi) / w * np.exp(-4 * LN2 * u ** 2 / w ** 2)
 
 
-def _lor(u, w):
+def _lor(u: np.ndarray, w: float) -> np.ndarray:
     return (2 / np.pi) * w / (4 * u ** 2 + w ** 2)
 
 
@@ -95,7 +95,7 @@ def _numeric_profile(shape: str, fwhm: float, a: float, b: float, c: float):
     return u, y / area if area > 0 else y
 
 
-def _convolve_gauss(y, step, gw):
+def _convolve_gauss(y: np.ndarray, step: float, gw: float) -> np.ndarray:
     if gw <= 1e-3:
         return y
     n = int(np.ceil(3 * gw / step))

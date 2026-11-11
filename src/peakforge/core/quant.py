@@ -13,7 +13,8 @@ QUANT_METHOD = ("at% = (A/RSF) / Σ(A/RSF). Built-in RSFs are approximate Scofie
                 "instrument's RSFs for quantitative work. Fitted areas include both spin–orbit partners.")
 
 
-def raw_area(x: np.ndarray, y: np.ndarray, kind: str = "shirley", lo=None, hi=None) -> float:
+def raw_area(x: np.ndarray, y: np.ndarray, kind: str = "shirley", lo: float | None = None,
+             hi: float | None = None) -> float:
     """Background-subtracted integral (no peak model)."""
     bg = bgmod.compute(kind, x, y, lo, hi)
     m = np.ones_like(x, bool)
@@ -38,7 +39,7 @@ def atomic_percent(entries: list[dict]) -> list[dict]:
     return out
 
 
-def find_c1s_reference(x: np.ndarray, y: np.ndarray, window=(283.0, 287.0)) -> float:
+def find_c1s_reference(x: np.ndarray, y: np.ndarray, window: tuple[float, float] = (283.0, 287.0)) -> float:
     """Position of the main C 1s (C–C/C–H) peak: Shirley + single GL(30) fitted to the low-BE side and
     top of the maximum inside `window` (uncorrected BE). Raises ValueError instead of returning a
     position when the peak is not clearly inside the window (strong charging, no C 1s signal):
@@ -59,7 +60,7 @@ def find_c1s_reference(x: np.ndarray, y: np.ndarray, window=(283.0, 287.0)) -> f
         raise ValueError("no clear C 1s peak — set the shift manually")
     k = (x >= c0 - 1.5) & (x <= c0 + 1.0)   # fit the low-BE side + top, avoid C–O shoulder
 
-    def r(p):
+    def r(p: np.ndarray) -> np.ndarray:
         a, c, w = p
         return a * lineshapes.profile("gl", x[k], c, w, m=0.3) - ys[k]
     a0 = ys[i0] * 1.3

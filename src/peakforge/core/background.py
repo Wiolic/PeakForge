@@ -13,6 +13,8 @@ kinds:
 """
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 
 KINDS = ("shirley", "linear", "tougaard", "smart", "none")
@@ -29,13 +31,13 @@ TOUGAARD_PRESETS = {
 _OLD_DEFAULT = (2866.0, 1643.0, 1.0)      # PeakForge 0.1 default: not a physical cross section
 
 
-def normalize_tougaard(t) -> tuple:
+def normalize_tougaard(t: Any) -> tuple:
     """Return a valid (B, C, D); maps the 0.1 default (2866, 1643, 1) to U2."""
     t = tuple(float(v) for v in (t or TOUGAARD_U2))
     return TOUGAARD_U2 if t == _OLD_DEFAULT or len(t) != 3 else t
 
 
-def _ends(x, y, lo, hi, avg):
+def _ends(x: np.ndarray, y: np.ndarray, lo: float, hi: float, avg: float):
     m_lo = (x >= lo) & (x <= lo + avg)
     m_hi = (x <= hi) & (x >= hi - avg)
     y_lo = y[m_lo].mean() if m_lo.any() else y[np.argmin(np.abs(x - lo))]

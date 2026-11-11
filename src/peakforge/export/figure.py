@@ -138,17 +138,25 @@ def draw_fit(ax, model: RegionModel, res: FitResult, th_name: str | None = None,
         residual_ax.tick_params(labelbottom=False)
 
 
+def _figure(figsize):
+    """A pyplot-free Figure with an Agg canvas: safe to build in a worker thread (no global figure registry,
+    no backend switch)."""
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from matplotlib.figure import Figure
+    fig = Figure(figsize=figsize, layout="constrained")
+    FigureCanvasAgg(fig)
+    return fig
+
+
 def save_panel_figure(path: str, panels: list[dict], ncols: int = 2, panel_size=(3.7, 2.9),
                       dpi: int = 300, letters: bool = True, fs: float = 8.0):
     """Multi-panel figure, (a), (b), … in reading order.
     panels: [{"model", "result", "theme", "sample", "region", "label_style"}]."""
-    matplotlib.use("Agg", force=False)
-    import matplotlib.pyplot as plt
     n = len(panels)
     ncols = max(1, min(ncols, n))
     nrows = (n + ncols - 1) // ncols
-    fig, axs = plt.subplots(nrows, ncols, figsize=(panel_size[0] * ncols, panel_size[1] * nrows),
-                            layout="constrained", squeeze=False)
+    fig = _figure(figsize=(panel_size[0] * ncols, panel_size[1] * nrows))
+    axs = fig.subplots(nrows, ncols, squeeze=False)
     fig.get_layout_engine().set(w_pad=0.12, h_pad=0.1, wspace=0.08, hspace=0.12)
     for i, ax in enumerate(axs.ravel()):
         if i >= n:
@@ -162,33 +170,29 @@ def save_panel_figure(path: str, panels: list[dict], ncols: int = 2, panel_size=
             ax.text(-0.13, 1.02, f"({chr(97 + i)})", transform=ax.transAxes, ha="left", va="bottom",
                     fontsize=fs + 3, fontfamily=th["font"])
     fig.savefig(path, dpi=dpi, facecolor="white")
-    plt.close(fig)
     return path
 
 
 def save_fit_figure(path: str, model: RegionModel, res: FitResult, th_name: str | None = None,
                     sample: str = "", region: str = "", dpi: int = 300, size=(5.0, 4.0),
                     residual: bool = False):
-    matplotlib.use("Agg", force=False)
-    import matplotlib.pyplot as plt
     if residual:
-        fig, (axr, ax) = plt.subplots(2, 1, figsize=(size[0], size[1] * 1.2), sharex=True,
-                                      gridspec_kw=dict(height_ratios=[1, 5]), layout="constrained")
+        fig = _figure(figsize=(size[0], size[1] * 1.2))
+        axr, ax = fig.subplots(2, 1, sharex=True, gridspec_kw=dict(height_ratios=[1, 5]))
     else:
-        fig, ax = plt.subplots(figsize=size, layout="constrained")
+        fig = _figure(figsize=size)
+        ax = fig.subplots()
         axr = None
     draw_fit(ax, model, res, th_name, sample, region, residual_ax=axr)
     fig.savefig(path, dpi=dpi, facecolor="white")
-    plt.close(fig)
     return path
 
 
 def save_stack_figure(path: str, items: list[tuple[str, RegionModel, FitResult]], th_name=None,
                       region: str = "", dpi: int = 300, gap: float = 0.15, size=(6.5, 6.0)):
     """Stacked comparison of several samples (same region), each normalised to its peak height."""
-    matplotlib.use("Agg", force=False)
-    import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=size, layout="constrained")
+    fig = _figure(figsize=size)
+    ax = fig.subplots()
     off = 0.0
     th = theme(th_name)
     for j, (label, model, res) in enumerate(items):
@@ -202,7 +206,6 @@ def save_stack_figure(path: str, items: list[tuple[str, RegionModel, FitResult]]
         off += float(np.max(r2.envelope)) + gap
     ax.set_title(region_mathtext(region), loc="left", fontsize=13, fontfamily=th["font"])
     fig.savefig(path, dpi=dpi, facecolor="white", bbox_inches="tight")
-    plt.close(fig)
     return path
 
 

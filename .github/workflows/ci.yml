@@ -32,6 +32,8 @@ jobs:
         run: pip install "PySide6<6.12"
       - name: Ruff
         run: ruff check src tests
+      - name: Ruff (type annotations on the numerical core)
+        run: ruff check --select ANN001,ANN201 src/peakforge/core
       - name: Tests (offscreen; PYTHONUTF8 deliberately NOT set)
         env:
           QT_QPA_PLATFORM: offscreen

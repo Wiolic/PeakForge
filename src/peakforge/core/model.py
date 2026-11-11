@@ -12,6 +12,7 @@ import functools
 import math
 import operator
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -37,7 +38,7 @@ class Param:
     def free(self) -> bool:
         return self.vary and not self.expr
 
-    def to_json(self):
+    def to_json(self) -> dict:
         d: dict[str, Any] = {"value": float(self.value)}
         if np.isfinite(self.min):
             d["min"] = float(self.min)
@@ -50,7 +51,7 @@ class Param:
         return d
 
     @classmethod
-    def from_json(cls, v) -> "Param":
+    def from_json(cls, v: Any) -> "Param":
         """number | [value, min, max] | [value] | {"value", "min", "max", "vary", "expr"} | "expr" """
         if isinstance(v, Param):
             return Param(v.value, v.min, v.max, v.vary, v.expr)
@@ -96,7 +97,7 @@ class Component:
         if np.isinf(self.params["fwhm"].min):
             self.params["fwhm"].min = 0.05
 
-    def set_shape(self, shape: str):
+    def set_shape(self, shape: str) -> None:
         old = self.shape
         self.shape = shape
         for k in lineshapes.SHAPES[old]["extra"]:
@@ -105,7 +106,7 @@ class Component:
         for k, (v, lo, hi) in lineshapes.SHAPES[shape]["extra"].items():
             self.params.setdefault(k, Param(v, lo, hi))
 
-    def set_doublet(self, on: bool, split: float = 1.0, ratio: float = 0.5):
+    def set_doublet(self, on: bool, split: float = 1.0, ratio: float = 0.5) -> None:
         self.doublet = on
         if on:
             self.params.setdefault("split", Param(split, vary=False))
@@ -130,7 +131,7 @@ class Component:
     def total_area(self, vals: dict[str, float]) -> float:
         return vals["area"] * (1 + vals["ratio"]) if self.doublet else vals["area"]
 
-    def to_json(self):
+    def to_json(self) -> dict:
         d = dict(name=self.name, label=self.label, shape=self.shape,
                  params={k: p.to_json() for k, p in self.params.items()})
         if self.doublet:
@@ -145,7 +146,7 @@ class Component:
         return d
 
     @classmethod
-    def from_json(cls, d) -> "Component":
+    def from_json(cls, d: dict) -> "Component":
         c = cls(name=d["name"], label=d.get("label", ""), shape=d.get("shape", "gl"),
                 params={k: Param.from_json(v) for k, v in d.get("params", {}).items()},
                 doublet=bool(d.get("doublet", False)),
@@ -163,11 +164,11 @@ class BackgroundSpec:
     avg: float = 0.5              # eV averaged at each end point
     tougaard: tuple = _bg.TOUGAARD_U2        # (B, C, D), see core/background.py
 
-    def to_json(self):
+    def to_json(self) -> dict:
         return dict(kind=self.kind, lo=self.lo, hi=self.hi, avg=self.avg, tougaard=list(self.tougaard))
 
     @classmethod
-    def from_json(cls, d) -> "BackgroundSpec":
+    def from_json(cls, d: dict) -> "BackgroundSpec":
         d = d or {}
         return cls(kind=d.get("kind", "shirley"), lo=d.get("lo"), hi=d.get("hi"),
                    avg=float(d.get("avg", 0.5)), tougaard=_bg.normalize_tougaard(d.get("tougaard")))
@@ -210,7 +211,7 @@ class RegionModel:
             i += 1
         return f"{base}{i}"
 
-    def param_items(self):
+    def param_items(self) -> Iterator[tuple[str, "Component", str, "Param"]]:
         for c in self.components:
             for k, p in c.params.items():
                 yield f"{c.name}.{k}", c, k, p
@@ -254,7 +255,7 @@ class RegionModel:
         return errs
 
     # ---------------------------------------------------------------- json
-    def to_json(self):
+    def to_json(self) -> dict:
         return dict(region=self.region, preset=self.preset, note=self.note, weighting=self.weighting,
                     fit_range=list(self.fit_range) if self.fit_range else None,
                     background=self.background.to_json(),
@@ -262,7 +263,7 @@ class RegionModel:
                     **({"legend_order": list(self.legend_order)} if self.legend_order else {}))
 
     @classmethod
-    def from_json(cls, d) -> "RegionModel":
+    def from_json(cls, d: dict) -> "RegionModel":
         return cls(region=d.get("region", ""), preset=d.get("preset", ""), note=d.get("note", ""),
                    weighting=d.get("weighting", "none"), legend_order=list(d.get("legend_order", [])),
                    fit_range=tuple(d["fit_range"]) if d.get("fit_range") else None,
@@ -289,7 +290,7 @@ def _parse(expr: str) -> ast.expr:
     except SyntaxError as e:
         raise ValueError(f"invalid expression '{expr}': {e.msg}") from None
 
-    def check(n):
+    def check(n: ast.AST) -> None:
         if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) and not isinstance(n.value, bool):
             return
         if isinstance(n, ast.BinOp) and type(n.op) in _BINOPS:
@@ -313,7 +314,7 @@ def _parse(expr: str) -> ast.expr:
 
 def eval_expr(expr: str, vals: dict[str, dict[str, float]]) -> float:
     """Evaluate a parameter expression such as 'Ir0.center + 1.1' without Python eval()."""
-    def ev(n):
+    def ev(n: ast.AST) -> float:
         if isinstance(n, ast.Constant):
             return float(n.value)
         if isinstance(n, ast.BinOp):

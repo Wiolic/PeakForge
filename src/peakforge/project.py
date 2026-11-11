@@ -356,17 +356,28 @@ class Project:
         s = self.spectra[key]
         return prepare(s.be, s.cps, model, self.shift(s.sample), acq_time=s.acq_time())
 
-    def fit(self, key: str, model: RegionModel | None = None, n_starts: int = 3,
-            save: bool = True) -> tuple[RegionModel, FitResult]:
+    def fit_inputs(self, key: str, model: RegionModel | None = None):
+        """(model, prepared data) for a fit of `key`; validates the model. Reads the project only, so the GUI
+        calls it in the UI thread and runs core.fit.fit on the result in a worker (the model is not copied:
+        pass model.copy() when the worker must not share it)."""
         model = model or self.get_model(key) or self.new_model(key)
         errs = model.validate()
         if errs:
             raise ValueError("; ".join(errs))
-        res = fit(model, self.prepared(key, model), n_starts=n_starts)
-        apply_result(model, res)
+        return model, self.prepared(key, model)
+
+    def store_fit(self, key: str, model: RegionModel, res: FitResult, save: bool = True):
+        """Record a finished fit (model already updated with apply_result)."""
         self.results[key] = res
         if save:
             self.set_model(key, model, res)
+
+    def fit(self, key: str, model: RegionModel | None = None, n_starts: int = 3,
+            save: bool = True) -> tuple[RegionModel, FitResult]:
+        model, prep = self.fit_inputs(key, model)
+        res = fit(model, prep, n_starts=n_starts)
+        apply_result(model, res)
+        self.store_fit(key, model, res, save)
         return model, res
 
     def evaluate(self, key: str, model: RegionModel | None = None) -> FitResult | None:
@@ -380,6 +391,22 @@ class Project:
         return self.results.get(key) or self.evaluate(key)
 
     # ------------------------------------------------------------------ batch
+    def _batch_model(self, src: RegionModel, key: str, fix: tuple[str, ...]) -> RegionModel:
+        m = src.copy()
+        for _key, c, pn, p in m.param_items():
+            if pn in fix and not p.expr:
+                p.vary = False
+        s = self.spectra[key]
+        presets.scale_areas(m, s, self.shift(s.sample))
+        return m
+
+    def batch_inputs(self, source_key: str, target_keys: list[str], fix: tuple[str, ...] = ()):
+        """[(key, model, prepared)] for batch_apply, without fitting (GUI: run the fits in a worker)."""
+        src = self.get_model(source_key)
+        if src is None:
+            raise ValueError(f"No model for {source_key}")
+        return [(k, *self.fit_inputs(k, self._batch_model(src, k, fix))) for k in target_keys if k != source_key]
+
     def batch_apply(self, source_key: str, target_keys: list[str], fix: tuple[str, ...] = (),
                     n_starts: int = 3) -> list[dict]:
         """Copy the model of source_key to targets and fit. fix: parameter names to freeze at the
@@ -391,13 +418,7 @@ class Project:
         for k in target_keys:
             if k == source_key:
                 continue
-            m = src.copy()
-            for _key, c, pn, p in m.param_items():
-                if pn in fix and not p.expr:
-                    p.vary = False
-            s = self.spectra[k]
-            presets.scale_areas(m, s, self.shift(s.sample))
-            m2, r = self.fit(k, m, n_starts=n_starts)
+            m2, r = self.fit(k, self._batch_model(src, k, fix), n_starts=n_starts)
             rows.append(dict(key=k, rms_pct=r.rms_pct, fractions=r.fractions, bound_hits=r.bound_hits))
         return rows
 

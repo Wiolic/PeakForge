@@ -1,7 +1,9 @@
 """Least-squares fitting of a RegionModel to a Spectrum."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 from scipy.optimize import least_squares
@@ -169,7 +171,7 @@ def _free_vector(model: RegionModel):
     return names, np.array(p0, float), np.array(lb, float), np.array(ub, float)
 
 
-def _derived_quantities(model: RegionModel, names, p) -> dict[str, float]:
+def _derived_quantities(model: RegionModel, names: list[str], p: Any) -> dict[str, float]:
     vals = model.resolve(dict(zip(names, p)))
     out = {f"{c.name}.{k}": v for c in model.components for k, v in vals[c.name].items()}
     areas = {c.name: c.total_area(vals[c.name]) for c in model.components}
@@ -181,7 +183,7 @@ def _derived_quantities(model: RegionModel, names, p) -> dict[str, float]:
     return out
 
 
-def _derived_errors(model: RegionModel, names, p, cov) -> dict[str, float]:
+def _derived_errors(model: RegionModel, names: list[str], p: Any, cov: np.ndarray) -> dict[str, float]:
     """Linear error propagation σ²_g = ∇g · Cov · ∇gᵀ for every resolved parameter (including
     expression-linked ones), total doublet area and % fraction. Free parameters keep their own σ.
     The covariance already contains the background end-point noise (see fit())."""
@@ -200,7 +202,7 @@ def _derived_errors(model: RegionModel, names, p, cov) -> dict[str, float]:
     return {k: float(np.sqrt(max(v, 0.0))) for k, v in zip(keys, var) if k not in free and np.isfinite(v)}
 
 
-def evaluate(model: RegionModel, x: np.ndarray, overrides=None):
+def evaluate(model: RegionModel, x: np.ndarray, overrides: dict[str, float] | None = None) -> tuple[dict, dict, np.ndarray]:
     vals = model.resolve(overrides)
     curves = {c.name: c.lines(x, vals[c.name]) for c in model.components}
     total = np.zeros_like(x)
@@ -211,13 +213,18 @@ def evaluate(model: RegionModel, x: np.ndarray, overrides=None):
 
 
 def fit(model: RegionModel, prep: Prepared, n_starts: int = 1, seed: int = 0,
-        max_nfev: int = 4000, optimize: bool = True) -> FitResult:
-    """Fit (or, with optimize=False, just evaluate the current parameter values)."""
+        max_nfev: int = 4000, optimize: bool = True, check: Callable[[], None] | None = None) -> FitResult:
+    """Fit (or, with optimize=False, just evaluate the current parameter values).
+
+    check: optional cancellation point called at every residual evaluation (see peakforge.tasks); it may
+    raise to abort the fit and never changes the numbers."""
     names, p0, lb, ub = _free_vector(model)
     ysub = prep.y - prep.bg
     span = float(np.trapezoid(np.clip(ysub, 0, None), prep.x)) or 1.0
 
-    def resid(p):
+    def resid(p: np.ndarray) -> np.ndarray:
+        if check is not None:
+            check()
         _, _, tot = evaluate(model, prep.x, dict(zip(names, p)))
         return (tot - ysub) * prep.w
 
@@ -330,7 +337,7 @@ def fit(model: RegionModel, prep: Prepared, n_starts: int = 1, seed: int = 0,
                      nfev=int(r.nfev) if r is not None else 0, noise=prep.noise, noise_ratio=float(noise_ratio))
 
 
-def apply_result(model: RegionModel, res: FitResult):
+def apply_result(model: RegionModel, res: FitResult) -> None:
     """Write fitted values back into the model's parameters (expressions stay as they are)."""
     for c in model.components:
         for k, p in c.params.items():

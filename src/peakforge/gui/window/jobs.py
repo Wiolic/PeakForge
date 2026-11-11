@@ -1,18 +1,36 @@
-"""Slow work: fitting, diagnostics, batch, export."""
+"""Slow work: fitting, diagnostics, batch, export — in background tasks (see peakforge/tasks.py).
+
+Pattern for every job: (1) in the UI thread read what is needed from the Project (model copy + Prepared data,
+export snapshot) and remember a stamp of what the result will replace; (2) the worker only runs numerical code
+on those copies, reporting progress / checking for a cancel; (3) on_done (UI thread) drops the result when the
+project or the model changed meanwhile (T3), otherwise writes it back. Cancelling leaves the project unchanged.
+"""
 from __future__ import annotations
 
 import os
 
-
 from ...core.diagnostics import diagnose
+from ...core.fit import apply_result
 from ...core.fit import fit as run_fit
 from ...logs import log
 from ..dialogs import BatchDialog, ExportDialog
 from ..i18n import tr
-from ..workers import submit
+from ..tasks import run_task
 
 
 class JobsMixin:
+    # ---- helpers ---------------------------------------------------------------------------------
+    @staticmethod
+    def _stamp(proj, key):
+        """The stored model of `key` (JSON dict or None): what a finished fit is about to replace."""
+        rec = proj.get_model_record(key)
+        return rec["model"] if rec else None
+
+    def _stale(self, proj, key, stamp) -> bool:
+        """True when the project was replaced or the stored model of `key` changed since the job started."""
+        return self.project is not proj or self._stamp(proj, key) != stamp
+
+    # ---- fitting ---------------------------------------------------------------------------------
     def fit_current(self, n_starts: int = 3):
         if self.key is None:
             return
@@ -20,66 +38,102 @@ class JobsMixin:
             self.model = self.project.new_model(self.key)
         else:
             self._store()
-        key, model = self.key, self.model.copy()
-        self._set_busy(True)
+        proj, key = self.project, self.key
+        try:
+            model, prep = proj.fit_inputs(key, self.model.copy())
+        except ValueError as e:
+            self.fail(f"{key}: {e}")
+            return
+        stamp = self._stamp(proj, key)
 
-        def job():
-            return self.project.fit(key, model, n_starts=n_starts, save=False)
+        def job(task):
+            r = run_fit(model, prep, n_starts=n_starts, check=task.check)
+            apply_result(model, r)
+            return model, r
 
         def done(out):
-            self._set_busy(False)
             m, r = out
+            if self._stale(proj, key, stamp):
+                self.say(tr("result_discarded", key=key))
+                return
             self._mark_write()
-            self.project.set_model(key, m, r)
+            proj.store_fit(key, m, r)
             if self.key == key:
                 self.model = m
                 self._show(r, keep_view=True)
                 self.refresh_tree_status()
             self.say(f"{key}: RMS {r.rms_pct:.2f} %  " + "  ".join(f"{k} {v:.1f}%" for k, v in r.fractions.items()))
-        submit(job, on_done=done, on_fail=self.fail)
+        run_task(self, job, done, busy_text=tr("fitting"), button_=self.tool.get("fit"), progress=True)
 
     def fit_all(self):
         if self.project is None:
             return
-        keys = self.project.keys(narrow_only=True)
+        proj = self.project
         n = self.panel.starts.value()
-        self._set_busy(True)
-        self._mark_write()
+        jobs, errors = [], []
+        for k in proj.keys(narrow_only=True):
+            try:
+                m, prep = proj.fit_inputs(k)
+            except Exception as e:     # noqa: BLE001 — one unusable spectrum must not stop the batch
+                log.warning("fit %s: no usable input", k, exc_info=True)
+                errors.append((k, str(e)))
+                continue
+            jobs.append((k, m, prep, self._stamp(proj, k)))
+        for k, err in errors:
+            self.say(f"{k}: ERROR {err}")
+        if not jobs:
+            return
 
-        def job():
+        def job(task):
             out = []
-            for k in keys:
+            for i, (k, m, prep, _stamp) in enumerate(jobs):
+                task.progress(i / len(jobs), k)
                 try:
-                    m, r = self.project.fit(k, n_starts=n)
-                    out.append((k, r.rms_pct, None))
+                    r = run_fit(m, prep, n_starts=n, check=task.check)
+                    apply_result(m, r)
+                    out.append((k, m, r, None))
                 except Exception as e:     # noqa: BLE001 — one failed fit must not stop the batch
                     log.warning("fit %s failed", k, exc_info=True)
-                    out.append((k, None, str(e)))
+                    out.append((k, None, None, str(e)))
             return out
 
         def done(out):
-            self._set_busy(False)
+            if self.project is not proj:
+                self.say(tr("result_discarded", key="*"))
+                return
             self._mark_write()
-            for k, rms, err in out:
-                self.say(f"{k}: " + (f"RMS {rms:.2f} %" if err is None else "ERROR " + err))
+            stamps = {k: s for k, _m, _p, s in jobs}
+            for k, m, r, err in out:
+                if err is not None:
+                    self.say(f"{k}: ERROR " + err)
+                elif self._stale(proj, k, stamps[k]):
+                    self.say(tr("result_discarded", key=k))
+                else:
+                    proj.store_fit(k, m, r)
+                    self.say(f"{k}: RMS {r.rms_pct:.2f} %")
             self.refresh_tree(select=self.key)
-        submit(job, on_done=done, on_fail=self.fail)
+        run_task(self, job, done, busy_text=tr("fitting"), button_=self.tool.get("fit_all"), progress=True)
 
     def diagnose_current(self):
         if self.key is None or self.model is None:
             return
-        key, model = self.key, self.model.copy()
-        self._set_busy(True)
+        proj, key, model = self.project, self.key, self.model.copy()
+        try:
+            prep = proj.prepared(key, model)
+        except Exception as e:     # noqa: BLE001 — shown to the user
+            log.warning("diagnose %s: prepare failed", key, exc_info=True)
+            self.fail(f"{key}: {e}")
+            return
         self.tabs.setCurrentWidget(self.diag_txt)
         self.diag_txt.setPlainText(tr("fitting"))
 
-        def job():
-            prep = self.project.prepared(key, model)
-            r = run_fit(model, prep, n_starts=1)
-            return diagnose(model, prep, r, deep=True)
+        def job(task):
+            r = run_fit(model, prep, n_starts=1, check=task.check)
+            return diagnose(model, prep, r, deep=True, progress=task.progress, check=task.check)
 
         def done(d):
-            self._set_busy(False)
+            if self.project is not proj or self.key != key:
+                return
             lines = [f"{tr('rms')}: {d['rms_pct']:.2f} %    χ²ᵣ = {d['chi2_red']:.2f}    BIC = {d['bic']:.1f}", ""]
             if d["warnings"]:
                 lines += [tr("warnings") + ":"] + ["  ⚠ " + w for w in d["warnings"]] + [""]
@@ -98,7 +152,11 @@ class JobsMixin:
                 for c in d["correlations"]:
                     lines.append(f"  {c['a']} ~ {c['b']}: {c['r']:+.3f}")
             self.diag_txt.setPlainText("\n".join(lines))
-        submit(job, on_done=done, on_fail=self.fail)
+
+        def cancelled():
+            self.diag_txt.setPlainText(tr("task_cancelled"))
+        run_task(self, job, done, busy_text=tr("diagnose"), button_=self.tool.get("diag"), progress=True,
+                 on_cancel=cancelled)
 
     def batch(self):
         if self.key is None or self.model is None:
@@ -108,19 +166,40 @@ class JobsMixin:
         if not dlg.exec():
             return
         v = dlg.values()
-        src = self.key
-        self._set_busy(True)
+        proj, src = self.project, self.key
+        try:
+            inputs = proj.batch_inputs(src, v["targets"], v["fix"])
+        except ValueError as e:
+            self.fail(str(e))
+            return
+        if not inputs:
+            return
+        stamps = {k: self._stamp(proj, k) for k, _m, _p in inputs}
 
-        def done(rows):
-            self._set_busy(False)
+        def job(task):
+            out = []
+            for i, (k, m, prep) in enumerate(inputs):
+                task.progress(i / len(inputs), k)
+                r = run_fit(m, prep, n_starts=v["n_starts"], check=task.check)
+                apply_result(m, r)
+                out.append((k, m, r))
+            return out
+
+        def done(out):
+            if self.project is not proj:
+                self.say(tr("result_discarded", key="*"))
+                return
             self._mark_write()
-            for r in rows:
-                self.say(f"{r['key']}: RMS {r['rms_pct']:.2f} %  " +
-                         "  ".join(f"{k} {x:.1f}%" for k, x in r["fractions"].items()))
+            for k, m, r in out:
+                if self._stale(proj, k, stamps[k]):
+                    self.say(tr("result_discarded", key=k))
+                    continue
+                proj.store_fit(k, m, r)
+                self.say(f"{k}: RMS {r.rms_pct:.2f} %  " + "  ".join(f"{n} {x:.1f}%" for n, x in r.fractions.items()))
             self.refresh_tree(select=src)
-        self._mark_write()
-        submit(self.project.batch_apply, src, v["targets"], v["fix"], v["n_starts"], on_done=done, on_fail=self.fail)
+        run_task(self, job, done, busy_text=tr("fitting"), progress=True)
 
+    # ---- export ----------------------------------------------------------------------------------
     def export(self):
         if self.project is None:
             return
@@ -128,11 +207,17 @@ class JobsMixin:
         if not dlg.exec():
             return
         v = dlg.values()
-        from ...export.exporter import export_all
-        self._set_busy(True)
+        from ...export.exporter import collect_export, run_export
+        try:
+            snap = collect_export(self.project, None, v["out_dir"], v["theme"], v["formats"], v["dpi"])
+        except (OSError, ValueError) as e:
+            self.fail(str(e))
+            return
+
+        def job(task):
+            return run_export(snap, task.progress)
 
         def done(r):
-            self._set_busy(False)
             self.say(f"export → {r['out_dir']}  ({r['n']} fits, {len(r['figures'])} figures)")
             o = r.get("origin")
             if o:
@@ -143,5 +228,5 @@ class JobsMixin:
             if r.get("xlsx"):
                 self.say(f"Excel: {r['xlsx']}")
             os.startfile(r["out_dir"]) if hasattr(os, "startfile") else None
-        submit(export_all, self.project, None, v["out_dir"], v["theme"], v["formats"], v["dpi"],
-               on_done=done, on_fail=self.fail)
+        run_task(self, job, done, busy_text=tr("export_all").rstrip("….") + "…", button_=self.tool.get("export"),
+                 progress=True)

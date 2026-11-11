@@ -297,3 +297,41 @@ def test_c1s_reference_accepts_coarse_step():
         + 2500 * lineshapes.profile("gl", x, 287.0, 1.2, m=0.3)
     y = rng.poisson(y).astype(float)
     assert abs(quant.find_c1s_reference(x, y) - 285.6) < 0.1
+
+
+# --------------------------------------------------------------------------- cancellation hooks (phase 3)
+def test_cancel_hooks_do_not_change_results_and_can_abort():
+    """fit(check=…) and diagnose(progress=…, check=…) only observe: identical numbers; a raising check aborts."""
+    from peakforge.core.diagnostics import diagnose
+    from peakforge.tasks import Cancelled, TaskHandle
+    x, y = _poisson_spectrum(3)
+    m = _two_peak_model()
+    prep = prepare(x, y, m, acq_time=0.6)
+    calls = []
+    a = fit(m, prep, n_starts=2)
+    b = fit(m, prep, n_starts=2, check=lambda: calls.append(1))
+    assert calls and np.array_equal(a.envelope, b.envelope) and a.stderr == b.stderr and a.bic == b.bic
+
+    seen = []
+    d0 = diagnose(m, prep, a, deep=True)
+    d1 = diagnose(m, prep, a, deep=True, progress=lambda f, t: seen.append(f), check=lambda: None)
+    assert d0["significance"] == d1["significance"] and d0["stability"] == d1["stability"]
+    assert seen and seen == sorted(seen) and 0 <= seen[0] and seen[-1] < 1
+
+    h = TaskHandle()
+    h.cancel()
+    with pytest.raises(Cancelled):
+        fit(m, prep, n_starts=1, check=h.check)
+    with pytest.raises(Cancelled):
+        diagnose(m, prep, a, deep=True, progress=h.progress, check=h.check)
+
+
+def test_cancelled_is_not_swallowed_by_except_exception():
+    from peakforge.tasks import Cancelled, TaskHandle
+    h = TaskHandle()
+    h.cancel()
+    with pytest.raises(Cancelled):
+        try:
+            h.progress(0.5, "x")
+        except Exception:      # noqa: BLE001 — must not catch a cancel
+            pytest.fail("Cancelled was caught by except Exception")

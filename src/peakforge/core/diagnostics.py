@@ -2,6 +2,8 @@
 removal), multi-start stability."""
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 
 from .fit import FitResult, Prepared, apply_result, fit
@@ -33,15 +35,25 @@ def _without(model: RegionModel, name: str) -> RegionModel | None:
     return m if m.components else None
 
 
-def significance(model: RegionModel, prep: Prepared, base: FitResult, n_starts: int = 1) -> list[dict]:
+def _report(progress: Callable[[float, str], None] | None, f: float, text: str) -> None:
+    if progress is not None:
+        progress(f, text)
+
+
+def significance(model: RegionModel, prep: Prepared, base: FitResult, n_starts: int = 1,
+                 progress: Callable[[float, str], None] | None = None, check: Callable[[], None] | None = None,
+                 span: tuple[float, float] = (0.0, 1.0)) -> list[dict]:
     """Refit with each component removed; ΔBIC > 10 = component strongly supported,
-    2..10 = positive evidence, < 2 = not supported by the data."""
+    2..10 = positive evidence, < 2 = not supported by the data.
+    progress / check: optional reporting and cancellation hooks (peakforge.tasks); they never change results."""
     out = []
-    for c in model.components:
+    n = max(len(model.components), 1)
+    for i, c in enumerate(model.components):
         m = _without(model, c.name)
         if m is None:
             continue
-        r = fit(m, prep, n_starts=n_starts)
+        _report(progress, span[0] + (span[1] - span[0]) * i / n, f"ΔBIC {c.label}")
+        r = fit(m, prep, n_starts=n_starts, check=check)
         d_bic = r.bic - base.bic
         if d_bic < -10 and r.rms_pct < base.rms_pct:
             verdict = "local minimum"     # the smaller model fits better -> full fit is not at its optimum
@@ -52,11 +64,14 @@ def significance(model: RegionModel, prep: Prepared, base: FitResult, n_starts: 
     return out
 
 
-def stability(model: RegionModel, prep: Prepared, n_starts: int = 12, tol: float = 0.02) -> dict:
+def stability(model: RegionModel, prep: Prepared, n_starts: int = 12, tol: float = 0.02,
+              progress: Callable[[float, str], None] | None = None, check: Callable[[], None] | None = None,
+              span: tuple[float, float] = (0.0, 1.0)) -> dict:
     """Run n random starts; among solutions within (1+tol)·best cost, report fraction spread."""
     sols = []
     for s in range(n_starts):
-        r = fit(model, prep, n_starts=1 if s == 0 else 2, seed=s)
+        _report(progress, span[0] + (span[1] - span[0]) * s / max(n_starts, 1), f"{s + 1}/{n_starts}")
+        r = fit(model, prep, n_starts=1 if s == 0 else 2, seed=s, check=check)
         sols.append(r)
     best = min(sols, key=lambda r: np.sum(r.residual ** 2))
     c0 = np.sum(best.residual ** 2)
@@ -69,7 +84,8 @@ def stability(model: RegionModel, prep: Prepared, n_starts: int = 12, tol: float
     return dict(n_starts=n_starts, n_equivalent=len(near), fractions=spread)
 
 
-def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = False) -> dict:
+def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = False,
+             progress: Callable[[float, str], None] | None = None, check: Callable[[], None] | None = None) -> dict:
     d = dict(rms_pct=res.rms_pct, chi2_red=res.chi2_red, bic=res.bic, bound_hits=res.bound_hits,
              correlations=correlations(res))
     warnings = []
@@ -90,7 +106,7 @@ def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = Fa
     if res.rms_pct > 3:
         warnings.append(f"Residual RMS {res.rms_pct:.1f}% of peak height — model may be missing a component")
     if deep:
-        d["significance"] = significance(model, prep, res)
+        d["significance"] = significance(model, prep, res, progress=progress, check=check, span=(0.0, 0.5))
         for s in d["significance"]:
             if s["verdict"] == "not supported":
                 warnings.append(f"Component {s['label']} not supported by data (ΔBIC {s['d_bic']:.1f})")
@@ -98,7 +114,7 @@ def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = Fa
                 warnings.append(f"Removing {s['label']} gives a better fit (ΔRMS {s['d_rms']:+.2f} %): the "
                                 "current solution is a local minimum or this component is misplaced — "
                                 "refit with more starts or revise its bounds")
-        d["stability"] = stability(model, prep)
+        d["stability"] = stability(model, prep, progress=progress, check=check, span=(0.5, 1.0))
         for k, s in d["stability"]["fractions"].items():
             if s["std"] > 3:
                 warnings.append(f"Fraction of {k} unstable across starts (±{s['std']:.1f} %)")

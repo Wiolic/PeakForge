@@ -14,3 +14,9 @@
   warning = unusual); swallowed exceptions are logged via `logs.log`, never `pass`.
 - All text I/O names `encoding=` (enforced by `tests/test_encoding.py`).
 - User-facing strings go through `gui/i18n.py` (zh/en). Figures and exports are English.
+- Background work (`gui/tasks.py`, `tasks.py`): a worker never touches widgets or the Project — inputs are copied in the
+  UI thread (`Project.fit_inputs`, `exporter.collect_export`), the result is written back in `on_done` and dropped when
+  the project/model changed meanwhile; matplotlib via `Figure` only, never pyplot; `Cancelled` is a BaseException.
+- Moving code (e.g. splitting a big module): `python tools/check_move.py <old file> <new pkg> [--class C --dots N ...]`
+  must report 0 problems (compares syntax trees against git HEAD).
+- Public functions in `core/` carry type annotations (`ruff check --select ANN001,ANN201 src/peakforge/core`, in CI).

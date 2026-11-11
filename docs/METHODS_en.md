@@ -164,6 +164,8 @@ their bounds, a spin–orbit area ratio fixed > 5 % away from the (2j+1) value o
 fixed > max(0.3 eV, 10 %) away from the table, and more than one free parameter per 3 points are
 **warnings** **[test]**. Auxiliary parameters (e.g. `Ir3.shift` used in `Ir0.center + Ir3.shift`) are allowed.
 
+**Cancellation (background tasks).** `fit(..., check=…)` calls a read-only cancellation point at every residual evaluation; the diagnostics' `progress/check` only report. Neither changes any number (`tests/test_methods.py::test_cancel_hooks_…` compares bit by bit); a cancel raises `Cancelled` and the project is left untouched.
+
 ## 10. Validation status
 | Area | Status |
 |---|---|

@@ -6,7 +6,7 @@ import time
 
 from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QIcon, QKeySequence
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QMessageBox, QPlainTextEdit,
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QHeaderView, QLabel, QMainWindow, QMessageBox, QPlainTextEdit, QProgressBar,
                                QScrollArea, QSplitter, QTableWidget, QTabWidget, QToolButton, QTreeWidget,
                                QVBoxLayout, QWidget)
 
@@ -40,7 +40,6 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         self.undo: dict[str, list] = {}
         self.redo: dict[str, list] = {}
         self._own_write = 0.0
-        self._busy = 0
         self.setWindowTitle(f"{APP_NAME} {__version__}")
         if os.path.exists(ICON):
             self.setWindowIcon(QIcon(ICON))
@@ -184,6 +183,14 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         split.setStretchFactor(0, 0); split.setStretchFactor(1, 1); split.setStretchFactor(2, 0)
         split.setSizes([250, 880, 500])
 
+        self.busy_lbl = QLabel(""); self.busy_lbl.setObjectName("hint")
+        self.busy_bar = QProgressBar(); self.busy_bar.setFixedWidth(160); self.busy_bar.setFixedHeight(14)
+        self.busy_cancel = QToolButton(); self.busy_cancel.setText(tr("cancel"))
+        self._busy_cb = None
+        self.busy_cancel.clicked.connect(lambda: self._busy_cb and self._busy_cb())
+        for w_ in (self.busy_lbl, self.busy_bar, self.busy_cancel):
+            w_.setVisible(False)
+            self.statusBar().addWidget(w_)
         self.metric_lbl = QLabel(""); self.metric_lbl.setObjectName("metric")
         self.statusBar().addPermanentWidget(self.metric_lbl)
         cr = QLabel(f"{CREDIT}   ·   {tr('disclaimer_short')}  "); cr.setObjectName("hint")
@@ -270,7 +277,6 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         self.statusBar().showMessage(msg.splitlines()[0][:200], 5000)
 
     def fail(self, msg: str):
-        self._set_busy(False)
         self.say("ERROR: " + msg)
         log.warning("GUI error: %s", msg)
         box = QMessageBox(QMessageBox.Icon.Warning, APP_NAME, msg.splitlines()[0][:500], parent=self)
@@ -283,14 +289,26 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         """Message of an exception in the UI language (ReadError carries zh / en)."""
         return e.text(i18n.lang()) if isinstance(e, ReadError) else str(e)
 
-    def _set_busy(self, on: bool):
-        self._busy += 1 if on else -1
-        self._busy = max(self._busy, 0)
-        if self._busy:
-            self.statusBar().showMessage(tr("fitting"))
-            self.setCursor(Qt.CursorShape.BusyCursor)
+    def busy(self, on: bool, text: str = "", frac: float | None = None, cancel=None):
+        """Status-bar progress for background tasks (called by gui.tasks): label, bar (busy stripe while the
+        fraction is unknown) and a Cancel button when the task can be cancelled."""
+        self.busy_lbl.setVisible(on)
+        self.busy_bar.setVisible(on)
+        self._busy_cb = cancel
+        self.busy_cancel.setVisible(on and cancel is not None)
+        if not on:
+            return
+        self.busy_lbl.setText(text)
+        if frac is None:
+            self.busy_bar.setRange(0, 0)
         else:
-            self.unsetCursor()
+            self.busy_bar.setRange(0, 100)
+            self.busy_bar.setValue(int(round(frac * 100)))
+
+    def closeEvent(self, ev):
+        from .tasks import shutdown_tasks
+        shutdown_tasks()
+        super().closeEvent(ev)
 
     def set_theme(self, k):
         self.view.theme = k
