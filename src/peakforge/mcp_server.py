@@ -16,6 +16,8 @@ from .project import Project, _jsonable
 
 INSTRUCTIONS = """PeakForge XPS analysis. Typical workflow:
 1. create_project / open_project, then add_files (.vms/.spe/.csv/.xlsx; raw files are copied read-only).
+   If a table imports wrongly: inspect_table(file) → save_template(name, template, test_file) →
+   add_files(files, template=name). validate() reports broken models / templates.
 2. charge_correct (C 1s C–C → 284.8 eV by default) — check the shift per sample in status.
 3. For each region: list_presets(region) → apply_preset(key, preset_id), or add_component manually.
 4. fit(keys) → read rms_pct, bound_hits; diagnostics(key) for ΔBIC component significance,
@@ -61,10 +63,55 @@ def status(project: str | None = None) -> dict:
 
 
 @mcp.tool()
-def add_files(files: list[str], project: str | None = None, sample: str | None = None) -> dict:
-    """Import data files (.vms VAMAS, .spe PHI, .csv/.txt/.xlsx). Returns the new spectrum keys."""
+def add_files(files: list[str], project: str | None = None, sample: str | None = None,
+              template: str | None = None) -> dict:
+    """Import data files (.vms VAMAS, .spe PHI, .csv/.txt/.xlsx). Returns the new spectrum keys.
+    template: name of a column template saved in the project (see inspect_table / save_template)."""
     p = _p(project)
-    return {f: p.add_file(f, sample=sample if len(files) == 1 else None) for f in files}
+    return {f: p.add_file(f, sample=sample if len(files) == 1 else None, template=template) for f in files}
+
+
+@mcp.tool()
+def list_formats() -> list[dict]:
+    """File formats PeakForge can read (reader name, description, suffixes)."""
+    from .io import list_formats as lf
+    return lf()
+
+
+@mcp.tool()
+def inspect_table(file: str) -> list[dict]:
+    """Preview a CSV/TXT/Excel file: column names, first rows and a guessed mapping per sheet.
+    Use it before save_template when automatic import gets the columns wrong."""
+    from .io.wizard import inspect_table as it
+    return it(file)
+
+
+@mcp.tool()
+def save_template(name: str, template: dict, test_file: str | None = None, project: str | None = None) -> dict:
+    """Save a column template in the project ("formats"). template = {"base": "table", "x": <col>,
+    "y": [<col>, ...], "energy": "binding"|"kinetic", "hv": 1486.6, "intensity": "cps"|"counts",
+    "acq_time": <s per point or null>, "regions": {"<col>": "Ir 4f"}, "sheet": <name>}; a column is the
+    header text or the 0-based number. With test_file the template is tried first."""
+    from .io.wizard import try_read
+    from .schema import check_template
+    p = _p(project)
+    rep = check_template(template, f"formats.{name}")
+    rep.raise_if_errors()
+    out = dict(name=name)
+    if test_file:
+        out["preview"] = try_read(test_file, dict(template, base="table"))
+    p.add_template(name, dict(template, base="table"))
+    return out
+
+
+@mcp.tool()
+def validate(project: str | None = None) -> dict:
+    """Check the project file, column templates, every model JSON and project presets.
+    Errors = would crash or compute wrongly; warnings = unusual / possibly unphysical."""
+    from . import schema
+    p = _p(project)
+    rep = schema.validate_project(p.path)
+    return dict(errors=rep.n_err, warnings=rep.n_warn, items=rep.to_list())
 
 
 @mcp.tool()
@@ -222,6 +269,9 @@ def render(key: str, project: str | None = None, theme: str | None = None) -> di
 
 
 def main():
+    from . import logs
+    logs.install_excepthook()
+    logs.log.info("MCP server %s started", __version__)
     mcp.run("stdio")
     return 0
 

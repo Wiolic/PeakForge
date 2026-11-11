@@ -5,6 +5,8 @@ import traceback
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal
 
+from ..logs import log
+
 
 class _Signals(QObject):
     done = Signal(object)
@@ -20,7 +22,8 @@ class Task(QRunnable):
     def run(self):
         try:
             r = self.fn(*self.args, **self.kw)
-        except Exception as e:      # noqa: BLE001
+        except Exception as e:      # noqa: BLE001 — reported to the UI thread
+            log.exception("background task %s failed", getattr(self.fn, "__name__", self.fn))
             self.signals.failed.emit(f"{e}\n{traceback.format_exc(limit=3)}")
             return
         self.signals.done.emit(r)

@@ -10,6 +10,7 @@ import numpy as np
 
 from .core import background as bgmod
 from .core.model import BackgroundSpec, Component, Param, RegionModel
+from .logs import log
 from .spectrum import Spectrum
 
 DATA = os.path.join(os.path.dirname(__file__), "data")
@@ -18,6 +19,7 @@ USER_DIR = os.path.join(os.path.expanduser("~"), ".peakforge", "presets")
 
 @lru_cache(maxsize=1)
 def orbitals() -> dict:
+    """Core-level table (read once; treat as read-only)."""
     with open(os.path.join(DATA, "orbitals.json"), encoding="utf-8") as f:
         return json.load(f)["orbitals"]
 
@@ -70,10 +72,13 @@ def list_presets(project_dir: str | None = None) -> dict[str, dict]:
     out = {}
     for d in preset_dirs(project_dir):
         for f in sorted(glob.glob(os.path.join(d, "*.json"))):
-            try:
-                with open(f, encoding="utf-8") as fh:
-                    p = json.load(fh)
-            except (OSError, json.JSONDecodeError):
+            from . import schema
+            rep = schema.Report()
+            p = schema.load_json(f, rep)
+            if p is not None:
+                rep.extend(schema.check_preset(p, os.path.basename(f)))
+            if not rep.ok:
+                log.warning("preset %s skipped: %s", f, rep.text())
                 continue
             pid = p.get("id") or os.path.splitext(os.path.basename(f))[0]
             p["id"] = pid

@@ -79,8 +79,17 @@ peakforge gui
 peakforge init D:/xps/proj --name IrTaOx && peakforge add D:/xps/proj data/*.spe
 peakforge charge D:/xps/proj && peakforge fit D:/xps/proj --region "Ir 4f" --deep
 peakforge export D:/xps/proj --formats png xlsx origin --theme fjord
+peakforge add D:/xps/proj lab.csv --template mylab   # column template saved in the project
+peakforge validate D:/xps/proj     # project file, templates, models, presets
+peakforge diag D:/xps/proj         # diagnostics bundle (no raw data)
+peakforge formats
 peakforge mcp
 ```
+
+Tables whose columns are not recognised: **File → Import table with column mapping…** (energy column
+BE/KE, intensity cps/counts + time per point, region names; saved as a reusable template). Problems:
+**Help → Validate project…** and **Help → Export diagnostics bundle…** (log, versions, project/model JSON,
+no raw data) to attach to a GitHub issue. Log: `~/.peakforge/peakforge.log`.
 
 Tests: `python -m pytest -q` (includes a fit of every one of the 169 core levels). Core-level table: `tools/build_orbitals.py`.
 

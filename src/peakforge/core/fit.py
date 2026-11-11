@@ -9,6 +9,7 @@ from scipy.optimize import least_squares
 from . import background as bgmod
 from . import lineshapes
 from .model import RegionModel
+from ..logs import log
 
 
 # shapes whose 'fwhm' parameter is not the measured full width at half maximum
@@ -241,7 +242,8 @@ def fit(model: RegionModel, prep: Prepared, n_starts: int = 1, seed: int = 0,
                 q0 = np.clip(q0, lb, ub)
             try:
                 r = least_squares(resid, q0, bounds=(lb, ub), x_scale="jac", max_nfev=max_nfev)
-            except Exception as e:      # noqa: BLE001
+            except Exception as e:      # noqa: BLE001 — a failed start is recorded, the others go on
+                log.debug("fit start %d failed: %s", k, e)
                 starts.append(dict(start=k, cost=np.inf, error=str(e)))
                 continue
             starts.append(dict(start=k, cost=float(r.cost), x=r.x.tolist()))

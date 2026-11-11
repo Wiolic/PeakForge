@@ -39,7 +39,8 @@ def _parse_header(text: str) -> dict:
 
 
 def read_spe(path: str) -> list[Spectrum]:
-    raw = open(path, "rb").read()
+    with open(path, "rb") as f:
+        raw = f.read()
     i = raw.find(b"EOFH")
     if not raw.startswith(b"SOFH") or i < 0:
         raise ValueError(f"{path}: not a PHI .spe file")

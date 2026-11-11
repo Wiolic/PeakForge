@@ -116,6 +116,8 @@ PeakForge 直接生成的组合图（`figures/combined.png`）。示例为真实
 - **没有 Origin 能用吗？** 可以。导出时会生成 PNG/TIFF/SVG/PDF 和 Excel；Origin 部分会生成数据和脚本，以后在装了 Origin 的电脑上，打开 Origin → 窗口 → 脚本窗口，粘贴 `run -pyf "…/build_origin.py"`（导出文件夹里的说明文件里有完整路径）即可得到 `.opju`。
 - **数据会上传吗？** 不会。PeakForge 完全在本机运行。只有你主动使用 AI 助手时，你发给 AI 的内容才会经过 AI 服务。
 - **结果和 Avantage 不一样？** 背景端点、线形、约束、荷电参考的任何差异都会改变结果。先把这些设成一致再比较；仍有差异时以你能解释的物理模型为准。
+- **CSV/Excel 的列没识别对？** 用“文件 → 按列映射导入表格…”：选能量列（结合能或动能）、强度列（cps 或 counts，可填每点采集时间）和谱区名，存成模板，以后同样格式的文件直接套用。
+- **出错了怎么反馈？** “帮助 → 导出诊断包…”会生成一个 zip（日志、版本、工程与模型 JSON，**不含原始数据**），可附在 GitHub issue 里；“帮助 → 检查工程…”会列出模型或工程文件中的错误与警告。
 - **灵敏度因子（RSF）对吗？** 内置值是 Scofield 截面的近似值，只适合粗略定量。请在“元素定量”表格里改成你仪器的 RSF。
 
 ---
@@ -130,6 +132,10 @@ peakforge add D:/xps/proj data/*.spe
 peakforge charge D:/xps/proj
 peakforge fit D:/xps/proj --region "Ir 4f" --deep
 peakforge export D:/xps/proj --formats png xlsx origin --theme fjord
+peakforge add D:/xps/proj lab.csv --template mylab   # 用工程中保存的列映射模板
+peakforge validate D:/xps/proj                 # 检查工程、模板、模型、预设
+peakforge diag D:/xps/proj                     # 诊断包（不含原始数据）
+peakforge formats                              # 支持的文件格式
 peakforge mcp                                  # MCP 服务器（stdio）
 ```
 

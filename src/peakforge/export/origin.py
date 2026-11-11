@@ -11,13 +11,15 @@ from ..core.fit import FitResult
 from ..core.model import RegionModel
 from .curves import curve_table
 from .themes import comp_color, label_origin, region_origin, theme
+from ..logs import log
 
 
 def originpro_available() -> bool:
     try:
         import originpro  # noqa: F401
         return True
-    except Exception:       # noqa: BLE001
+    except Exception:       # noqa: BLE001 — any failure (missing, licence, COM) means unavailable
+        log.debug("originpro not available", exc_info=True)
         return False
 
 
@@ -86,7 +88,7 @@ def export_origin(items, out_dir: str, opju_name: str = "PeakForge_fits.opju", t
             try:
                 op.exit()
             except Exception:   # noqa: BLE001
-                pass
+                log.debug("originpro exit failed", exc_info=True)
         return dict(mode="originpro", opju=spec["out"], script=script)
     return dict(mode="script", opju=None, script=script,
                 hint=f'In Origin: run -pyf "{os.path.abspath(script)}"')

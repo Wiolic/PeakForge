@@ -76,7 +76,9 @@ limits the background stays at the end values.
 |---|---|---|
 | VAMAS (ISO 14976) | dwell × number of scans; ordinate divided by t unless its unit is c/s | standard |
 | PHI .spe | dwell (**not** dwell × sweeps) | on PHI Genesis data the point-to-point variance of the stored cps equals that expected for cps·dwell: variance ratio 0.65–1.52 (mean ≈1.0) over 10 narrow regions of two samples (C 1s, O 1s, K 2p, Ir 4f with 3 sweeps, Ta 4f with 5) and 0.82–1.04 for three surveys, with the 4th-difference estimator below (re-checked in phase 1); it would be 2–5 for cps·dwell·sweeps |
-| CSV / Excel | unknown → estimated from the data | — |
+| CSV / Excel, automatic | unknown → estimated from the data | — |
+| CSV / Excel with a column template, `intensity: cps` | `acq_time` if given, else estimated | user declaration |
+| CSV / Excel with a column template, `intensity: counts` | `acq_time` t if given (cps = counts / t), else t = 1 s (cps = counts, so N is exact) | user declaration **[test]** |
 
 **Noise σᵢ.** With known t: σᵢ = √(yᵢ·t)/t (Poisson, data variance). Without: σᵢ² = k·yᵢ. Before the fit k
 is estimated from second differences of the data (only the shape of σ matters for the weights). **After
@@ -154,6 +156,13 @@ GUI and in the Excel export.
 Expressions such as `Ir0.center + 1.1`, `O_lat.fwhm`, `max(A.center, 3) - sqrt(4)` are parsed into a
 syntax tree and evaluated without Python `eval`: numbers, `+ − × / **`, unary ±, `abs min max sqrt exp
 log`, `pi` and `component.param` references only; anything else is rejected **[test]**.
+Models are validated when they are loaded or set (`schema.py`, also `peakforge validate`): references to
+missing components/parameters, circular expressions, min > max, free parameters that neither the line
+shape nor any expression uses (the fit cannot determine them — usually a typo), unknown shapes or
+backgrounds and fit ranges outside the data are **errors** and the model is refused; start values outside
+their bounds, a spin–orbit area ratio fixed > 5 % away from the (2j+1) value of the orbital table, a split
+fixed > max(0.3 eV, 10 %) away from the table, and more than one free parameter per 3 points are
+**warnings** **[test]**. Auxiliary parameters (e.g. `Ir3.shift` used in `Ir0.center + Ir3.shift`) are allowed.
 
 ## 10. Validation status
 | Area | Status |

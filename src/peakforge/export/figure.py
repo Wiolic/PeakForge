@@ -9,6 +9,7 @@ import numpy as np
 from ..core.fit import FitResult
 from ..core.model import RegionModel
 from .themes import comp_color, label_mathtext, region_mathtext, rgb01, theme
+from ..logs import log
 
 logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)
 # superscripts / italics in labels use the same sans font as the text (Arial-like, as in Origin)
@@ -46,7 +47,8 @@ def _fit_ylim(ax, res, o, x, leg, fs):
     span = ymax - ymin or 1.0
     try:
         h_in = ax.get_position().height * ax.figure.get_figheight()
-    except Exception:       # noqa: BLE001
+    except Exception:       # noqa: BLE001 — layout query on a figure without canvas
+        log.debug("figure height unknown, using 3 in", exc_info=True)
         h_in = 3.0
     line = fs * 1.32 / 72 / max(h_in, 0.5)
     f_lab, f_lab_w = min(0.45, 2.6 * line + 0.05), 0.35      # label: height / width fractions
@@ -56,7 +58,8 @@ def _fit_ylim(ax, res, o, x, leg, fs):
             r_ = ax.figure.canvas.get_renderer()
             bb = leg.get_window_extent(r_).transformed(ax.transAxes.inverted())
             f_leg_h, f_leg_w = 1.0 - bb.y0 + 0.03, bb.x1 + 0.03
-        except Exception:   # noqa: BLE001
+        except Exception:   # noqa: BLE001 — renderer not available
+            log.debug("legend extent unknown, using defaults", exc_info=True)
             f_leg_h, f_leg_w = 0.45, 0.4
     xr = x.max() - x.min()
     yy = np.maximum(res.y[o], res.envelope[o])

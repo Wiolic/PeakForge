@@ -18,6 +18,7 @@ from ..core.fit import FitResult, Prepared, fit
 from ..core.model import RegionModel
 from ..export.themes import comp_color, label_mathtext, rgb01, theme
 from .i18n import tr
+from ..logs import log
 
 
 class SpectrumView(QWidget):
@@ -238,7 +239,8 @@ class SpectrumView(QWidget):
         try:
             self.prep = prepare(x, y, self.model, 0.0, acq_time=self.prep.acq_time)
             self.res = fit(self.model, self.prep, optimize=False)
-        except Exception:        # noqa: BLE001
+        except (ValueError, KeyError, FloatingPointError, np.linalg.LinAlgError) as e:   # mid-drag states
+            log.debug("live update skipped: %s", e)
             return
         self.redraw()
 

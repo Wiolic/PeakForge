@@ -64,14 +64,15 @@ def set_model(p: Project, key: str, model: dict | str) -> dict:
     key = resolve_key(p, key)
     if isinstance(model, str):
         model = json.loads(model)
+    from . import schema
+    sp = p.spectra[key]
+    rep = schema.check_model(model, "model", sp, p.shift(sp.sample))
+    rep.raise_if_errors()
     m = RegionModel.from_json(model)
     if not m.region:
-        m.region = p.spectra[key].region
-    errs = m.validate()
-    if errs:
-        raise ValueError("; ".join(errs))
+        m.region = sp.region
     p.set_model(key, m)
-    return dict(key=key, ok=True, components=m.names())
+    return dict(key=key, ok=True, components=m.names(), warnings=rep.warnings())
 
 
 def apply_preset(p: Project, key: str, preset_id: str | None = None) -> dict:

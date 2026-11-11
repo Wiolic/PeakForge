@@ -86,7 +86,7 @@ def build(spec: dict, op=None, show: bool = False):
     template = spec.get("template")
     use_tpl = bool(template) and os.path.exists(template)
     for g in spec["graphs"]:
-        df = pd.read_csv(g["csv"])
+        df = pd.read_csv(g["csv"], encoding="utf-8")
         wb = op.new_book("w", lname=g["book"])
         wks = wb[0]
         wks.name = g["book"][:31]

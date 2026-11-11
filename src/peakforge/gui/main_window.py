@@ -17,7 +17,10 @@ from ..core.diagnostics import diagnose
 from ..core.fit import fit as run_fit
 from ..core.model import Component, Param, RegionModel
 from ..export.themes import theme_id
-from ..io import FILE_FILTER
+from ..io import FILE_FILTER, ReadError
+from ..io.registry import TableReader
+from ..logs import log
+from ..schema import SchemaError
 from ..project import EXT, Project
 from . import i18n
 from .canvas import SpectrumView
@@ -240,6 +243,7 @@ class MainWindow(QMainWindow):
         self._act(m, tr("new_project"), self.new_project, "Ctrl+N")
         self._act(m, tr("open_project"), self.open_project_dialog, "Ctrl+O")
         self._act(m, tr("import"), self.import_files, "Ctrl+I")
+        self._act(m, tr("import_mapped"), self.import_mapped)
         self.recent_menu = m.addMenu(tr("recent"))
         self._fill_recent()
         m.addSeparator()
@@ -274,6 +278,9 @@ class MainWindow(QMainWindow):
         self._act(m, tr("agent_connect"), lambda: AgentDialog(self.project, self).exec())
         m = mb.addMenu(tr("menu_help"))
         self._act(m, tr("disclaimer"), lambda: self.show_disclaimer(True))
+        self._act(m, tr("validate"), self.validate_project)
+        self._act(m, tr("diag_zip"), self.export_diagnostics)
+        self._act(m, tr("open_log"), self.open_log_folder)
         self._act(m, tr("about"), self.about)
 
 
@@ -294,7 +301,16 @@ class MainWindow(QMainWindow):
     def fail(self, msg: str):
         self._set_busy(False)
         self.say("ERROR: " + msg)
-        QMessageBox.warning(self, APP_NAME, msg.splitlines()[0][:500])
+        log.warning("GUI error: %s", msg)
+        box = QMessageBox(QMessageBox.Icon.Warning, APP_NAME, msg.splitlines()[0][:500], parent=self)
+        if len(msg.splitlines()) > 1 or len(msg) > 500:
+            box.setDetailedText(msg)
+        box.exec()
+
+    @staticmethod
+    def err(e: Exception) -> str:
+        """Message of an exception in the UI language (ReadError carries zh / en)."""
+        return e.text(i18n.lang()) if isinstance(e, ReadError) else str(e)
 
     def _set_busy(self, on: bool):
         self._busy += 1 if on else -1
@@ -324,8 +340,8 @@ class MainWindow(QMainWindow):
     def open_project(self, path: str):
         try:
             self.project = Project.open(path)
-        except Exception as e:      # noqa: BLE001
-            self.fail(str(e))
+        except (OSError, ValueError) as e:      # SchemaError / ReadError are ValueErrors
+            self.fail(f"{path}\n{self.err(e)}")
             return
         self._remember(self.project.path)
         self.setWindowTitle(f"{APP_NAME} — {self.project.name}")
@@ -358,7 +374,8 @@ class MainWindow(QMainWindow):
         key = self.key
         try:
             self.project.reload()
-        except Exception:       # noqa: BLE001
+        except (OSError, ValueError) as e:      # half-written file from the agent: retry on next change
+            log.warning("external reload of %s failed: %s", self.project.path, e)
             return
         self.project.results.clear()
         self._watch()
@@ -376,14 +393,92 @@ class MainWindow(QMainWindow):
         files, _ = QFileDialog.getOpenFileNames(self, tr("import"), "", FILE_FILTER)
         if not files:
             return
+        self._add_files(files)
+
+    def _add_files(self, files, template: str | None = None):
         self._mark_write()
+        failed_tables = []
         for f in files:
             try:
-                keys = self.project.add_file(f)
+                keys = self.project.add_file(f, template=template)
                 self.say(f"+ {os.path.basename(f)}: {len(keys)} spectra")
-            except Exception as e:  # noqa: BLE001
-                self.fail(f"{f}: {e}")
+            except (OSError, ValueError) as e:
+                if template is None and os.path.splitext(f)[1].lower() in TableReader.suffixes:
+                    failed_tables.append(f)
+                self.fail(f"{f}: {self.err(e)}")
         self.refresh_tree()
+        if failed_tables:
+            self.import_mapped(failed_tables)
+
+    def import_mapped(self, files=None):
+        """Import tables through a saved column template or a new one made in the wizard."""
+        if self.project is None:
+            self.new_project()
+            if self.project is None:
+                return
+        if not files:
+            files, _ = QFileDialog.getOpenFileNames(self, tr("import_mapped"), "",
+                                                    "Tables (*.csv *.txt *.dat *.xy *.xlsx *.xls *.xlsm);;All files (*)")
+            if not files:
+                return
+        new = tr("wiz_title") + "…"
+        names = list(self.project.formats)
+        name = new
+        if names:
+            name, ok = QInputDialog.getItem(self, tr("template"), tr("template"), [new] + names, 0, False)
+            if not ok:
+                return
+        if name == new:
+            from .colwizard import ColumnWizard
+            try:
+                dlg = ColumnWizard(files[0], self.project.formats, self)
+            except (OSError, ValueError) as e:
+                self.fail(f"{files[0]}: {self.err(e)}")
+                return
+            if not dlg.exec():
+                return
+            try:
+                self._mark_write()
+                self.project.add_template(dlg.template_name, dlg.template)
+            except ValueError as e:
+                self.fail(self.err(e))
+                return
+            name = dlg.template_name
+        self._add_files(files, template=name)
+
+    # ------------------------------------------------------------------ help: validation / diagnostics
+    def validate_project(self):
+        if self.project is None:
+            self.fail(tr("no_project"))
+            return
+        from .. import schema
+        rep = schema.validate_project(self.project.path)
+        if not rep.items:
+            QMessageBox.information(self, APP_NAME, tr("validate_ok"))
+            return
+        self.say(rep.text())
+        box = QMessageBox(QMessageBox.Icon.Warning if rep.n_err else QMessageBox.Icon.Information, APP_NAME,
+                          tr("validate_title", e=rep.n_err, w=rep.n_warn), parent=self)
+        box.setDetailedText(rep.text())
+        box.exec()
+
+    def export_diagnostics(self):
+        from .. import logs
+        try:
+            path = logs.diagnostics_zip(project=self.project)
+        except OSError as e:
+            self.fail(str(e))
+            return
+        self.say(f"{tr('diag_done')} {path}")
+        QMessageBox.information(self, APP_NAME, f"{tr('diag_done')}\n{path}")
+        self.open_log_folder()
+
+    def open_log_folder(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        from .. import logs
+        logs.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(logs.LOG_DIR)))
 
     # ------------------------------------------------------------------ tree
     def refresh_tree(self, select: str | None = None):
@@ -489,7 +584,11 @@ class MainWindow(QMainWindow):
         p = self.project
         self.key = key
         s = p.spectra[key]
-        self.model = p.get_model(key)
+        try:
+            self.model = p.get_model(key)
+        except SchemaError as e:
+            self.model = None
+            self.fail(f"{tr('model_invalid')}\n{e}")
         self.panel.set_presets(s.region, p.root)
         res = p.result(key) if self.model is not None else None
         self._show(res, keep_view)
@@ -504,7 +603,8 @@ class MainWindow(QMainWindow):
                 prep = p.prepared(key, self.model)
                 if res is None:
                     res = run_fit(self.model, prep, optimize=False)
-            except Exception as e:  # noqa: BLE001
+            except (ValueError, KeyError, FloatingPointError) as e:
+                log.warning("evaluate %s: %s", key, e)
                 self.say(f"evaluate: {e}")
                 res = None
         title = f"{p.sample_label(s.sample)} · {s.region}"
@@ -716,7 +816,8 @@ class MainWindow(QMainWindow):
                 try:
                     m, r = self.project.fit(k, n_starts=n)
                     out.append((k, r.rms_pct, None))
-                except Exception as e:     # noqa: BLE001
+                except Exception as e:     # noqa: BLE001 — one failed fit must not stop the batch
+                    log.warning("fit %s failed", k, exc_info=True)
                     out.append((k, None, str(e)))
             return out
 

@@ -23,7 +23,8 @@ from . import __version__, presets
 from .core import quant
 from .core.fit import FitResult, apply_result, fit, prepare
 from .core.model import RegionModel
-from .io import load_file
+from .io import ReadError, read_file
+from .logs import log
 from .spectrum import Spectrum
 
 EXT = ".xpsproj"
@@ -56,6 +57,7 @@ class Project:
         self.spectra: dict[str, Spectrum] = {}
         self.results: dict[str, FitResult] = {}
         self.charge_failures: dict[str, str] = {}
+        self.model_reports: dict = {}           # key -> schema.Report of the last get_model()
         self._load_spectra()
 
     # ------------------------------------------------------------------ create / open / save
@@ -78,11 +80,17 @@ class Project:
     @classmethod
     def open(cls, path: str) -> "Project":
         path = find_project(path)
-        with open(path, encoding="utf-8") as f:
-            data = json.load(f)
-        if data.get("format") != "peakforge-project":
-            raise ValueError(f"{path} is not a PeakForge project")
-        return cls(path, data)
+        from . import schema
+        rep0 = schema.Report()
+        data = schema.load_json(path, rep0)
+        rep0.raise_if_errors()
+        rep = schema.check_project_data(data, os.path.basename(path), os.path.dirname(path))
+        if rep.items:
+            log.warning("project %s: %s", path, rep.text())
+        rep.raise_if_errors()
+        p = cls(path, data)
+        p.validation = rep
+        return p
 
     def save(self):
         self.data["modified"] = _now()
@@ -115,10 +123,12 @@ class Project:
         for f in self.data.get("files", []):
             p = os.path.join(self.root, f["path"])
             try:
-                sps = load_file(p)
-            except Exception as e:      # noqa: BLE001
+                sps = read_file(p, fmt=f.get("template"), templates=self.formats)
+            except ReadError as e:
                 f["error"] = str(e)
+                log.warning("project %s: %s", self.path, e)
                 continue
+            f.pop("error", None)
             ov = self.data.get("region_override", {})
             for s in sps:
                 s.sample = f["sample"]
@@ -146,9 +156,24 @@ class Project:
         self.results.pop(key, None)
         return new_key
 
-    def add_file(self, src: str, sample: str | None = None, copy: bool = True) -> list[str]:
+    @property
+    def formats(self) -> dict:
+        """Column templates saved by the import wizard: {name: template} (see io/table.py)."""
+        return self.data.setdefault("formats", {})
+
+    def add_template(self, name: str, template: dict):
+        from .io.wizard import add_template
+        add_template(self.data, name, template)
+        self.save()
+
+    def add_file(self, src: str, sample: str | None = None, copy: bool = True,
+                 template: str | None = None) -> list[str]:
+        """template: name of a column template in self.formats (tables only)."""
         src = os.path.abspath(src)
-        sps = load_file(src)                      # validate before copying
+        if template and template not in self.formats:
+            raise ReadError(f"No column template '{template}' in this project",
+                            f"工程中没有名为“{template}”的列映射模板")
+        sps = read_file(src, fmt=template, templates=self.formats)     # validate before copying
         if not sps:
             raise ValueError(f"No spectra found in {src}")
         base = os.path.splitext(os.path.basename(src))[0]
@@ -176,8 +201,11 @@ class Project:
             rel = os.path.relpath(dst, self.root)
         else:
             rel = os.path.relpath(src, self.root)
-        self.data["files"].append(dict(path=rel.replace("\\", "/"), sample=sample,
-                                       format=sps[0].meta.get("format", ""), added=_now()))
+        entry = dict(path=rel.replace("\\", "/"), sample=sample,
+                     format=sps[0].meta.get("reader", ""), added=_now())
+        if template:
+            entry["template"] = template
+        self.data["files"].append(entry)
         self.data["samples"].setdefault(sample, dict(shift=0.0, shift_source="none", label=sample))
         keys = []
         for s in sps:
@@ -260,11 +288,25 @@ class Project:
         return os.path.join(self.root, "models", safe_name(key) + ".json")
 
     def get_model(self, key: str) -> RegionModel | None:
+        """The saved model, validated against its spectrum (schema.py). Raises SchemaError when the
+        file would crash the fit or compute something wrong; warnings go to self.model_reports[key]."""
+        from . import schema
         p = self._model_path(key)
         if not os.path.exists(p):
             return None
-        with open(p, encoding="utf-8") as f:
-            return RegionModel.from_json(json.load(f)["model"])
+        where = f"models/{os.path.basename(p)}"
+        rep = schema.Report()
+        rec = schema.load_json(p, rep)
+        if rec is not None and "model" not in rec:
+            rep.err(where, "no 'model' entry")
+        if rec is not None and "model" in rec:
+            s = self.spectra.get(key)
+            schema.check_model(rec["model"], where, s, self.shift(s.sample) if s else 0.0, rep=rep)
+        self.model_reports[key] = rep
+        if not rep.ok:
+            log.warning("invalid model file %s: %s", p, rep.text())
+        rep.raise_if_errors()
+        return RegionModel.from_json(rec["model"])
 
     def get_model_record(self, key: str) -> dict | None:
         p = self._model_path(key)

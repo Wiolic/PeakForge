@@ -85,6 +85,37 @@ T = {
                    "GUI 会自动显示 Agent 的修改。", "Register the PeakForge MCP server in your agent "
                    "(Claude Code, Codex, Cursor…) and ask it to analyse this project in plain language; "
                    "the GUI shows its changes live."),
+    # column-mapping wizard, diagnostics, validation
+    "import_mapped": ("按列映射导入表格…", "Import table with column mapping…"),
+    "wiz_title": ("列映射向导", "Column mapping"),
+    "wiz_hint": ("选择能量列与强度列。勾选的每一列成为一条谱；“谱区”填元素与能级（如 Ir 4f）。"
+                 "映射会以模板名存进工程，以后同样格式的文件可直接套用。",
+                 "Choose the energy column and the intensity columns. Every ticked column becomes one spectrum; "
+                 "fill in its region (e.g. Ir 4f). The mapping is saved in the project under a name so files "
+                 "with the same layout import directly."),
+    "wiz_sheet": ("工作表", "Sheet"), "wiz_x": ("能量列", "Energy column"), "wiz_energy": ("能量", "Energy"),
+    "wiz_be": ("结合能 BE", "Binding energy"), "wiz_ke": ("动能 KE（BE = hν − KE）", "Kinetic energy (BE = hν − KE)"),
+    "wiz_intensity": ("强度单位", "Intensity"), "wiz_cps": ("计数率 cps", "Count rate (cps)"),
+    "wiz_counts": ("计数 counts", "Counts"),
+    "wiz_time": ("每点采集时间（用于泊松权重）", "Time per point (for Poisson weights)"),
+    "wiz_time_counts": ("每点采集时间（cps = counts / t；不填则 t = 1 s）",
+                        "Time per point (cps = counts / t; unset: t = 1 s)"),
+    "wiz_cols": ("列（勾选 = 强度列）", "Columns (ticked = intensity)"), "wiz_use": ("使用", "Use"),
+    "wiz_region_ph": ("如 Ir 4f", "e.g. Ir 4f"), "wiz_try": ("试读", "Try"),
+    "wiz_name": ("模板名", "Template name"), "wiz_name_ph": ("如 MyLab-CSV", "e.g. MyLab-CSV"),
+    "wiz_need_name": ("请填写模板名", "Enter a template name"),
+    "template": ("列映射模板", "Column template"), "auto_detect": ("自动识别", "Auto-detect"),
+    "diag_zip": ("导出诊断包…", "Export diagnostics bundle…"),
+    "diag_done": ("诊断包已保存（日志、版本、工程与模型 JSON，不含原始数据）：",
+                  "Diagnostics bundle saved (log, versions, project and model JSON — no raw data):"),
+    "open_log": ("打开日志文件夹", "Open log folder"),
+    "validate": ("检查工程…", "Validate project…"),
+    "validate_ok": ("工程检查通过，没有错误或警告。", "Project check passed: no errors or warnings."),
+    "validate_title": ("工程检查：{e} 个错误，{w} 个警告", "Project check: {e} error(s), {w} warning(s)"),
+    "model_invalid": ("模型文件有错误，未载入（请重新应用预设或修正文件）：",
+                      "The model file has errors and was not loaded (re-apply a preset or fix the file):"),
+    "unexpected": ("程序出错，详情已写入日志。可在“帮助 → 导出诊断包”发给开发者。",
+                   "Unexpected error — details are in the log. Use Help → Export diagnostics bundle to report it."),
 }
 
 _lang = None

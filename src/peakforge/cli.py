@@ -40,6 +40,12 @@ def main(argv=None):
     i = sub.add_parser("init"); i.add_argument("folder"); i.add_argument("--name")
     a = sub.add_parser("add"); a.add_argument("project"); a.add_argument("files", nargs="+")
     a.add_argument("--no-copy", action="store_true")
+    a.add_argument("--template", help="column template saved in the project (tables)")
+    v = sub.add_parser("validate", help="check project file, column templates, models and presets")
+    v.add_argument("project")
+    sub.add_parser("formats", help="list file formats (readers)")
+    dg = sub.add_parser("diag", help="write a diagnostics bundle (logs, versions, project/model JSON; no raw data)")
+    dg.add_argument("project", nargs="?"); dg.add_argument("--out")
     s = sub.add_parser("status"); s.add_argument("project")
     c = sub.add_parser("charge"); c.add_argument("project"); c.add_argument("--ref", type=float)
     c.add_argument("--sample"); c.add_argument("--set", type=float, dest="value")
@@ -79,13 +85,29 @@ def main(argv=None):
         p = Project.create(args.folder, args.name)
         _print(dict(project=p.path))
         return 0
+    if args.cmd == "formats":
+        from .io import list_formats
+        _print(list_formats())
+        return 0
+    if args.cmd == "validate":
+        from . import schema
+        rep = schema.validate_project(args.project)
+        sys.stdout.reconfigure(encoding="utf-8") if hasattr(sys.stdout, "reconfigure") else None
+        print(rep.text())
+        print(f"{rep.n_err} error(s), {rep.n_warn} warning(s)")
+        return 1 if rep.n_err else 0
+    if args.cmd == "diag":
+        from . import logs
+        p = Project.open(args.project) if args.project else None
+        _print(dict(diagnostics=str(logs.diagnostics_zip(args.out, p))))
+        return 0
     if args.cmd == "presets":
         p = Project.open(args.project) if args.project else None
         _print(ops.list_presets(p, args.region))
         return 0
     p = Project.open(args.project)
     if args.cmd == "add":
-        _print({fn: p.add_file(fn, copy=not args.no_copy) for fn in args.files})
+        _print({fn: p.add_file(fn, copy=not args.no_copy, template=args.template) for fn in args.files})
     elif args.cmd == "status":
         _print(ops.status(p))
     elif args.cmd == "charge":

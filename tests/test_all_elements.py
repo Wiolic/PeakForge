@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from peakforge import presets  # noqa: E402
+from peakforge import presets, schema  # noqa: E402
 from peakforge.core import lineshapes  # noqa: E402
 from peakforge.core.fit import fit, prepare  # noqa: E402
 from peakforge.spectrum import Spectrum, normalize_region  # noqa: E402
@@ -48,6 +48,8 @@ def test_every_core_level_fits(region, info):
     sp = synth(region, info)
     m = presets.generic_model(sp)
     assert m.components, "no component found"
+    rep = schema.check_model(m.to_json(), region, sp)
+    assert rep.items == [], rep.text()          # automatic models must pass validation cleanly
     if info.get("split") and not info.get("complex"):
         assert all(c.doublet for c in m.components)
         assert m.components[0].params["split"].value == pytest.approx(info["split"], rel=0.08)

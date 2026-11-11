@@ -11,15 +11,16 @@ def run(project: str | None = None) -> int:
     from PySide6.QtGui import QIcon
     from PySide6.QtWidgets import QApplication
 
-    from .. import APP_NAME
+    from .. import APP_NAME, __version__
     from .main_window import ICON, MainWindow
 
     if sys.platform == "win32":
         try:
             import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PeakForge.XPS")
-        except Exception:      # noqa: BLE001
-            pass
+        except Exception:      # noqa: BLE001 — cosmetic (taskbar icon grouping)
+            from ..logs import log
+            log.debug("AppUserModelID not set", exc_info=True)
     app = QApplication.instance() or QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setStyle("Fusion")
@@ -29,6 +30,16 @@ def run(project: str | None = None) -> int:
     if os.path.exists(ICON):
         app.setWindowIcon(QIcon(ICON))
     holder = {}
+    from .. import logs
+
+    def on_error(text):
+        from PySide6.QtWidgets import QMessageBox
+        from .i18n import tr
+        box = QMessageBox(QMessageBox.Icon.Critical, APP_NAME, tr("unexpected"))
+        box.setDetailedText(text)
+        box.exec()
+    logs.install_excepthook(on_error)
+    logs.log.info("GUI %s started", __version__)
 
     def make(path):
         old = holder.get("w")
