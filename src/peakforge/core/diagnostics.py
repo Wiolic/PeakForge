@@ -78,6 +78,15 @@ def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = Fa
     if d["correlations"]:
         warnings.append("Highly correlated parameters: " +
                         ", ".join(f"{c['a']}~{c['b']} ({c['r']:+.2f})" for c in d["correlations"][:5]))
+    if res.noise == "counting" and np.isfinite(res.noise_ratio) and not 0.5 < res.noise_ratio < 2.0:
+        msg = (f"Data noise is {res.noise_ratio:.1f}× the counting-statistics variance expected from "
+               "the file's acquisition time — χ²ᵣ and Poisson weights are unreliable (check dwell/sweeps)")
+        if res.noise_ratio > 2.0 and res.chi2_red > 2.0:
+            msg += ("; with χ²ᵣ ≫ 1 this can also be line-shape misfit that varies from point to point "
+                    "(coarse energy step)")
+        warnings.append(msg)
+    if res.noise == "estimated":
+        d["chi2_note"] = "χ²ᵣ uses a noise level estimated from the data (±~15 %)"
     if res.rms_pct > 3:
         warnings.append(f"Residual RMS {res.rms_pct:.1f}% of peak height — model may be missing a component")
     if deep:

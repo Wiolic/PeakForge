@@ -70,9 +70,11 @@ def read_spe(path: str) -> list[Spectrum]:
         sweeps = hdr["regions2"].get(reg_no, {}).get("sweeps", 1)
         meta = dict(format="PHI SPE", technique=hdr.get("Technique", "XPS"), source=src,
                     photon_energy=hv, pass_energy=reg["pass_energy"], dwell=reg["dwell"],
-                    sweeps=sweeps, work_function=hdr.get("AnalyserWorkFcn", ""),
+                    sweeps=sweeps, acq_time=reg["dwell"], work_function=hdr.get("AnalyserWorkFcn", ""),
                     date=hdr.get("FileDate", ""), instrument=hdr.get("InstrumentModel", ""),
                     institution=hdr.get("Institution", ""))
+        # acq_time = dwell, NOT dwell × sweeps: on PHI Genesis data the point-to-point noise of the
+        # stored cps matches Poisson statistics of cps·dwell (evidence and numbers: docs/METHODS_en.md §4).
         out.append(Spectrum(region=region, be=be, cps=y, sample=base, source_file=path,
                             index=seen[region], meta=meta))
     return out

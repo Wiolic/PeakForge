@@ -7,13 +7,17 @@ Doublet parameters are 'split' and 'ratio' on the component: "Ir0.split".
 """
 from __future__ import annotations
 
+import ast
+import functools
 import math
+import operator
 import re
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 
+from . import background as _bg
 from . import lineshapes
 
 _REF = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\b")
@@ -156,7 +160,7 @@ class BackgroundSpec:
     lo: float | None = None       # BE limits; None = data range
     hi: float | None = None
     avg: float = 0.5              # eV averaged at each end point
-    tougaard: tuple = (2866.0, 1643.0, 1.0)
+    tougaard: tuple = _bg.TOUGAARD_U2        # (B, C, D), see core/background.py
 
     def to_json(self):
         return dict(kind=self.kind, lo=self.lo, hi=self.hi, avg=self.avg, tougaard=list(self.tougaard))
@@ -165,7 +169,7 @@ class BackgroundSpec:
     def from_json(cls, d) -> "BackgroundSpec":
         d = d or {}
         return cls(kind=d.get("kind", "shirley"), lo=d.get("lo"), hi=d.get("hi"),
-                   avg=float(d.get("avg", 0.5)), tougaard=tuple(d.get("tougaard", (2866.0, 1643.0, 1.0))))
+                   avg=float(d.get("avg", 0.5)), tougaard=_bg.normalize_tougaard(d.get("tougaard")))
 
 
 @dataclass
@@ -236,6 +240,11 @@ class RegionModel:
         names = set(self.names())
         for key, c, k, p in self.param_items():
             if p.expr:
+                try:
+                    _parse(p.expr)
+                except ValueError as e:
+                    errs.append(f"{key}: {e}")
+                    continue
                 for cn, pn in _REF.findall(p.expr):
                     if cn not in names:
                         errs.append(f"{key}: unknown component '{cn}' in '{p.expr}'")
@@ -263,13 +272,64 @@ class RegionModel:
         return RegionModel.from_json(self.to_json())
 
 
+_BINOPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,
+           ast.Div: operator.truediv, ast.Pow: operator.pow}
+_UNOPS = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+_FUNCS = {k: v for k, v in _SAFE.items() if callable(v)}
+_CONSTS = {k: v for k, v in _SAFE.items() if not callable(v)}
+
+
+@functools.lru_cache(maxsize=4096)
+def _parse(expr: str) -> ast.expr:
+    """Parse and whitelist an expression: numbers, + - * / **, unary ±, the functions in _SAFE,
+    the constant pi and '<component>.<param>' references. Anything else raises ValueError."""
+    try:
+        tree = ast.parse(expr.strip(), mode="eval").body
+    except SyntaxError as e:
+        raise ValueError(f"invalid expression '{expr}': {e.msg}") from None
+
+    def check(n):
+        if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)) and not isinstance(n.value, bool):
+            return
+        if isinstance(n, ast.BinOp) and type(n.op) in _BINOPS:
+            check(n.left); check(n.right); return
+        if isinstance(n, ast.UnaryOp) and type(n.op) in _UNOPS:
+            check(n.operand); return
+        if isinstance(n, ast.Name) and n.id in _CONSTS:
+            return
+        if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name) and not n.attr.startswith("_") \
+                and not n.value.id.startswith("_"):
+            return
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id in _FUNCS \
+                and not n.keywords:
+            for a in n.args:
+                check(a)
+            return
+        raise ValueError(f"not allowed in expression '{expr}': {ast.dump(n)[:60]}")
+    check(tree)
+    return tree
+
+
 def eval_expr(expr: str, vals: dict[str, dict[str, float]]) -> float:
-    def sub(m):
-        cn, pn = m.group(1), m.group(2)
-        if cn in vals and pn in vals[cn]:
-            return repr(float(vals[cn][pn]))
-        if cn in _SAFE:
-            return m.group(0)
-        raise KeyError(f"unknown reference {cn}.{pn}")
-    code = _REF.sub(sub, expr)
-    return float(eval(code, {"__builtins__": {}}, dict(_SAFE)))
+    """Evaluate a parameter expression such as 'Ir0.center + 1.1' without Python eval()."""
+    def ev(n):
+        if isinstance(n, ast.Constant):
+            return float(n.value)
+        if isinstance(n, ast.BinOp):
+            return _BINOPS[type(n.op)](ev(n.left), ev(n.right))
+        if isinstance(n, ast.UnaryOp):
+            return _UNOPS[type(n.op)](ev(n.operand))
+        if isinstance(n, ast.Name):
+            return float(_CONSTS[n.id])
+        if isinstance(n, ast.Attribute):
+            cn, pn = n.value.id, n.attr
+            if cn in vals and pn in vals[cn]:
+                return float(vals[cn][pn])
+            raise KeyError(f"unknown reference {cn}.{pn}")
+        if isinstance(n, ast.Call):
+            return float(_FUNCS[n.func.id](*[ev(a) for a in n.args]))
+        raise ValueError(expr)
+    try:
+        return float(ev(_parse(expr)))
+    except (OverflowError, ZeroDivisionError) as e:
+        raise ValueError(f"expression '{expr}': {e}") from None

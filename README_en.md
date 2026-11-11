@@ -11,6 +11,7 @@ Free · open source · point-and-click · or hand the whole analysis to an AI ag
 <a href="#why-peakforge">Why</a> ·
 <a href="QUICKSTART_en.md"><b>Quickstart</b></a> ·
 <a href="#reading-the-results">Reading results</a> ·
+<a href="docs/METHODS_en.md">Methods</a> ·
 <a href="#disclaimer">Disclaimer</a></p>
 
 ![PeakForge main window](docs/images/gui_main.png)
@@ -56,7 +57,7 @@ The same fits exported as an Origin project (`.opju`, one editable graph per reg
 | Metric | Meaning | Rule of thumb |
 |---|---|---|
 | Residual RMS (%) | misfit relative to peak height | < 2–3 % good; structured residual = missing component or wrong background |
-| χ²ᵣ | residual normalised by noise | ≈ 1 means misfit ≈ counting noise |
+| χ²ᵣ | residual normalised by counting noise (“≈”: noise estimated from the data) | ≈ 1 means misfit ≈ counting noise; high-count spectra are often ≫ 1 even at small RMS — see [methods](docs/METHODS_en.md#4-noise-model-weighting-and-χᵣ-fitpy) |
 | ±1σ | statistical uncertainty | comparable to the value → not determined by the data |
 | At bounds | parameter stuck at a limit | constraints are deciding the result |
 | \|corr\| > 0.95 | parameters trade off | report them separately with care |

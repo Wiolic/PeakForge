@@ -4,7 +4,11 @@ kinds:
   none      zero
   linear    straight line between averaged end points
   shirley   iterative Shirley (Sherwood) between averaged end points
-  tougaard  universal 3-parameter Tougaard (B, C, D), scaled to match the high-BE end point
+  tougaard  Tougaard background with the cross section
+              K(T) = B·T / ((C − T²)² + D·T²)            (U3; Tougaard, SIA 25 (1997) 137)
+            D = 4C makes it identical to the universal two-parameter U2 = B·T / (C + T²)²
+            (Tougaard 1989; C = 1643 eV² for metals, their alloys and oxides). B is NOT used as
+            given: the background is rescaled to meet the averaged high-BE end point.
   smart     Shirley, but clipped so it never exceeds the data (CasaXPS 'Smart')
 """
 from __future__ import annotations
@@ -13,6 +17,23 @@ import numpy as np
 
 KINDS = ("shirley", "linear", "tougaard", "smart", "none")
 
+# (B, C, D) for K(T) = B·T / ((C − T²)² + D·T²). C, D in eV², from S. Tougaard, Surf. Interface Anal.
+# 56 (2024), doi:10.1002/sia.7273, eqs. 1–2, citing Surf. Interface Anal. 25 (1997) 137. B is rescaled.
+TOUGAARD_U2 = (2866.0, 1643.0, 4 * 1643.0)
+TOUGAARD_PRESETS = {
+    "U2 universal": TOUGAARD_U2,          # metals, alloys, oxides
+    "U3 Al": (1.0, 230.0, 4.5),
+    "U3 Si": (1.0, 325.0, 96.0),
+    "U3 polymer": (1.0, 551.0, 436.0),
+}
+_OLD_DEFAULT = (2866.0, 1643.0, 1.0)      # PeakForge 0.1 default: not a physical cross section
+
+
+def normalize_tougaard(t) -> tuple:
+    """Return a valid (B, C, D); maps the 0.1 default (2866, 1643, 1) to U2."""
+    t = tuple(float(v) for v in (t or TOUGAARD_U2))
+    return TOUGAARD_U2 if t == _OLD_DEFAULT or len(t) != 3 else t
+
 
 def _ends(x, y, lo, hi, avg):
     m_lo = (x >= lo) & (x <= lo + avg)
@@ -20,6 +41,30 @@ def _ends(x, y, lo, hi, avg):
     y_lo = y[m_lo].mean() if m_lo.any() else y[np.argmin(np.abs(x - lo))]
     y_hi = y[m_hi].mean() if m_hi.any() else y[np.argmin(np.abs(x - hi))]
     return y_lo, y_hi
+
+
+def end_point_response(kind: str, x: np.ndarray, y: np.ndarray, lo: float | None = None,
+                       hi: float | None = None, avg: float = 0.5, tougaard: tuple = None) -> list:
+    """Linear response of the background to its two end-point averages, for error propagation.
+    Returns [(g, u), ...]: u = weights of the data points forming the end-point average (sums to 1),
+    g = ∂background/∂(that average), by finite difference. The background depends on the data mainly
+    through these averages (checked against the full ∂bg/∂y: within 3 %, docs/METHODS.md)."""
+    if kind == "none" or len(x) < 2:
+        return []
+    tougaard = TOUGAARD_U2 if tougaard is None else tougaard
+    lo_ = x.min() if lo is None else max(lo, x.min())
+    hi_ = x.max() if hi is None else min(hi, x.max())
+    base = compute(kind, x, y, lo, hi, avg, tougaard)
+    h = max(1e-6 * float(np.max(np.abs(y))), 1e-9)
+    out = []
+    for win in ((x >= lo_) & (x <= lo_ + avg), (x <= hi_) & (x >= hi_ - avg)):
+        if not win.any():
+            win = np.zeros(len(x), bool)
+            win[np.argmin(np.abs(x - (lo_ if not out else hi_)))] = True
+        u = win / win.sum()
+        g = (compute(kind, x, y + h * win, lo, hi, avg, tougaard) - base) / h
+        out.append((g, u))
+    return out
 
 
 def auto_limits(x: np.ndarray, y: np.ndarray, frac: float = 0.25, smooth: int = 5) -> tuple[float, float]:
@@ -37,7 +82,7 @@ def auto_limits(x: np.ndarray, y: np.ndarray, frac: float = 0.25, smooth: int = 
 
 
 def compute(kind: str, x: np.ndarray, y: np.ndarray, lo: float | None = None,
-            hi: float | None = None, avg: float = 0.5, tougaard: tuple = (2866.0, 1643.0, 1.0),
+            hi: float | None = None, avg: float = 0.5, tougaard: tuple = TOUGAARD_U2,
             n_iter: int = 100) -> np.ndarray:
     """Background over the whole x array; outside [lo, hi] it is held at the end values."""
     lo = x.min() if lo is None else max(lo, x.min())
@@ -71,7 +116,7 @@ def compute(kind: str, x: np.ndarray, y: np.ndarray, lo: float | None = None,
         out[x > hi] = y_hi
         return out
     if kind == "tougaard":
-        B, C, D = tougaard
+        B, C, D = normalize_tougaard(tougaard)
         # K(T) = B T / ((C - T^2)^2 + D T^2); electrons emitted at BE x' that lose energy T appear at
         # BE x = x' + T, so bg(x) = ∫_{x' < x} K(x - x') j(x') dx'
         j = ys - y_lo

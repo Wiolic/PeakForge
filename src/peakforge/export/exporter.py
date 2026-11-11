@@ -6,6 +6,7 @@ import re
 
 import pandas as pd
 
+from ..core import quant
 from .curves import component_table, curve_table
 from .figure import save_fit_figure, save_panel_figure, save_stack_figure
 from .origin import export_origin
@@ -47,7 +48,9 @@ def export_excel(project, path: str, keys=None) -> str:
             qd = pd.DataFrame([{"Sample": project.sample_label(e["sample"]), "Region": e["region"],
                                 "Area": e["area"], "Area source": e["area_source"], "RSF": e.get("rsf"),
                                 "Atomic %": e.get("at_pct")} for e in q])
-            qd.round(4).to_excel(w, sheet_name="Quantification", index=False)
+            qd = pd.concat([qd.round(4), pd.DataFrame([{"Sample": "Method", "Region": quant.QUANT_METHOD}])],
+                           ignore_index=True)
+            qd.to_excel(w, sheet_name="Quantification", index=False)
         from .. import CREDIT, DISCLAIMER_EN, DISCLAIMER_ZH, __version__
         pd.DataFrame({"Item": ["Software", "Credit", "Project", "Charge reference (eV)", "Disclaimer", "免责声明"],
                       "Value": [f"PeakForge {__version__}", CREDIT, project.name,

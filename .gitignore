@@ -18,3 +18,4 @@ venv/
 test_data/
 output/
 .claude/
+tests/local/

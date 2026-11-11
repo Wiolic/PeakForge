@@ -41,7 +41,8 @@ def component_table(model: RegionModel, res: FitResult, sample: str = "", region
                      "FWHM (eV)": r["fwhm"], "± FWHM": r["fwhm_err"],
                      "Partner (eV)": r.get("center2"), "Split (eV)": r.get("split"),
                      "Area": r["area"], "± area": r["area_err"],
-                     "Fraction (%)": r["fraction"]})
+                     "Fraction (%)": r["fraction"], "± fraction": r.get("fraction_err"),
+                     "Apparent FWHM (eV)": r.get("fwhm_apparent")})
     df = pd.DataFrame(rows)
-    df.attrs.update(rms=res.rms_pct, chi2=res.chi2_red, bic=res.bic)
+    df.attrs.update(rms=res.rms_pct, chi2=res.chi2_red, bic=res.bic, noise=res.noise)
     return df

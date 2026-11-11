@@ -16,7 +16,7 @@ Shapes and their extra parameters:
 from __future__ import annotations
 
 import numpy as np
-from scipy.special import voigt_profile
+from scipy.special import erfcx, voigt_profile
 
 LN2 = np.log(2.0)
 
@@ -42,22 +42,31 @@ def _lor(u, w):
     return (2 / np.pi) * w / (4 * u ** 2 + w ** 2)
 
 
+_GRID_N = 2049      # fixed point count: the grid then scales continuously with the widths, so the
+                    # profile is a smooth function of every parameter (finite-difference Jacobians)
+
+
+def _gl_area(m: float) -> float:
+    """∫ exp(−a t²)/(1 + b t²) dt over ℝ (t = u/w), a = 4 ln2 (1−m), b = 4m:
+    (π/√b)·erfcx(√(a/b)); limits m = 0 (Gaussian) and m = 1 (Lorentzian) included."""
+    a, b = 4 * LN2 * (1 - m), 4 * m
+    if b < 1e-12:
+        return float(np.sqrt(np.pi / a))
+    return float(np.pi / np.sqrt(b) * erfcx(np.sqrt(a / b)))
+
+
 def _numeric_profile(shape: str, fwhm: float, a: float, b: float, c: float):
-    """Unit-area profile on a grid centred at 0 (u = x - centre, BE). Not cached on purpose:
-    finite-difference Jacobians need exact (unrounded) parameter dependence."""
+    """Unit-area DS / LA profile on a grid centred at 0 (u = x - centre, BE). Not cached on purpose:
+    finite-difference Jacobians need exact (unrounded) parameter dependence. The range
+    [−(8w+1), 25w+4] eV (w = largest width) defines the DS area (docs/METHODS.md); its point count is
+    fixed, so the grid moves continuously with the widths."""
     w = max(fwhm, 1e-3)
     width = max(w, b if shape == "ds" else 0.0, c if shape == "la" else 0.0)
-    step = min(0.02, width / 15)
     span_hi = 25 * width + 4          # tail side (higher BE)
     span_lo = 8 * width + 1
-    u = np.arange(-span_lo, span_hi + step, step)
-    if shape == "gl":
-        m = a
-        y = np.exp(-4 * LN2 * (1 - m) * u ** 2 / w ** 2) / (1 + 4 * m * u ** 2 / w ** 2)
-    elif shape == "sgl":
-        m = a
-        y = (1 - m) * np.exp(-4 * LN2 * u ** 2 / w ** 2) + m / (1 + 4 * u ** 2 / w ** 2)
-    elif shape == "ds":
+    u = np.linspace(-span_lo, span_hi, _GRID_N)
+    step = u[1] - u[0]
+    if shape == "ds":
         alpha, gam = a, max(b, 1e-3) / 2.0
         # DS(ε) = cos[πα/2 + (1−α)·atan(ε/γ)] / (γ²+ε²)^((1−α)/2) has its tail at NEGATIVE ε
         # (ε = kinetic-energy offset). Higher BE = lower KE, so ε = −u puts the tail at higher BE.
@@ -74,6 +83,14 @@ def _numeric_profile(shape: str, fwhm: float, a: float, b: float, c: float):
             y = _convolve_gauss(y, step, gw)
     else:
         raise ValueError(shape)
+    # cosine taper over the outer 10 % of each side, so the cut-off does not jump across data points
+    # when a width changes (that made ∂/∂fwhm wrong by orders of magnitude)
+    edge_lo, edge_hi = 0.1 * span_lo, 0.1 * span_hi
+    tap = np.ones_like(u)
+    lo_m, hi_m = u < -span_lo + edge_lo, u > span_hi - edge_hi
+    tap[lo_m] = 0.5 - 0.5 * np.cos(np.pi * (u[lo_m] + span_lo) / edge_lo)
+    tap[hi_m] = 0.5 - 0.5 * np.cos(np.pi * (span_hi - u[hi_m]) / edge_hi)
+    y = y * tap
     area = np.trapezoid(y, u)
     return u, y / area if area > 0 else y
 
@@ -105,9 +122,16 @@ def profile(shape: str, x: np.ndarray, center: float, fwhm: float, **kw) -> np.n
         fg2 = (w - 0.5346 * fl) ** 2 - 0.2166 * fl ** 2
         fg = np.sqrt(max(fg2, 1e-8))
         return voigt_profile(u, fg / (2 * np.sqrt(2 * LN2)), fl / 2)
-    if shape in ("gl", "sgl"):
-        uu, yy = _numeric_profile(shape, w, float(kw.get("m", 0.3)), 0.0, 0.0)
-    elif shape == "ds":
+    if shape == "gl":      # analytic, exactly normalised (no grid, no truncation)
+        m = min(max(float(kw.get("m", 0.3)), 0.0), 1.0)
+        t2 = (u / w) ** 2
+        return np.exp(-4 * LN2 * (1 - m) * t2) / (1 + 4 * m * t2) / (w * _gl_area(m))
+    if shape == "sgl":     # (1−m)·G + m·L, both peak-normalised, then unit area over ℝ
+        m = min(max(float(kw.get("m", 0.3)), 0.0), 1.0)
+        t2 = (u / w) ** 2
+        area = w * ((1 - m) * np.sqrt(np.pi / (4 * LN2)) + m * np.pi / 2)
+        return ((1 - m) * np.exp(-4 * LN2 * t2) + m / (1 + 4 * t2)) / area
+    if shape == "ds":
         uu, yy = _numeric_profile(shape, w, float(kw.get("alpha", 0.1)), float(kw.get("gamma", 0.3)), 0.0)
     elif shape == "la":
         uu, yy = _numeric_profile(shape, w, float(kw.get("alpha", 1.5)), float(kw.get("beta", 2.0)),

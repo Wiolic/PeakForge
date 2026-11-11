@@ -41,12 +41,14 @@ class _Lines:
         self.i += n
 
 
-def read_vamas(path: str) -> list[Spectrum]:
+def read_vamas(path: str, keep_comments: bool = False) -> list[Spectrum]:
+    """keep_comments: store each block's comment lines in meta["comment"] (e.g. CasaXPS
+    "CASA region/comp" model lines); off by default so project files stay small."""
     with open(path, "r", encoding="latin-1") as f:
         L = _Lines(f.read())
     if not L.s().startswith("VAMAS"):
         raise ValueError(f"{path}: not a VAMAS file")
-    institution, instrument, operator, experiment = L.s(), L.s(), L.s(), L.s()
+    institution, instrument, operator, experiment = L.s(), L.s(), L.s(), L.s()  # noqa: F841 (header fields read to advance the stream)
     L.skip(L.k())                       # header comment lines
     exp_mode = L.s().strip()
     scan_mode = L.s().strip()
@@ -72,7 +74,7 @@ def read_vamas(path: str) -> list[Spectrum]:
         sample_id = L.s().strip()
         date = [L.k() for _ in range(6)]
         L.k()                           # GMT offset
-        L.skip(L.k())                   # block comment
+        comment = [L.s() for _ in range(L.k())]     # block comment
         tech = L.s().strip()
         if exp_mode in _MAP_MODES:
             L.skip(2)
@@ -108,10 +110,10 @@ def read_vamas(path: str) -> list[Spectrum]:
         else:
             x_label, x0, dx = "", 0.0, 0.0
         n_corr = L.k()
-        corr_labels = []
+        corr_labels, corr_units = [], []
         for _c in range(n_corr):
             corr_labels.append(L.s().strip())
-            L.s()
+            corr_units.append(L.s().strip())
         L.s()                           # signal mode
         dwell = L.n()
         scans = L.k()
@@ -142,16 +144,22 @@ def read_vamas(path: str) -> list[Spectrum]:
         if region in ("", " "):
             region = normalize_region(block_id)
         dwell_eff = dwell if dwell and dwell < 1e30 else 1.0
-        cps = y / (dwell_eff * max(scans, 1))
+        # ISO 14976: ordinate = counts per channel summed over 'scans' sweeps of 'dwell' s each.
+        # Files that already store count rates (unit c/s) are taken as is.
+        per_second = corr_units[0].lower().replace(" ", "") in ("c/s", "cps", "counts/s", "s-1", "1/s")
+        acq = dwell_eff * max(scans, 1)
+        cps = y if per_second else y / acq
         seen[region] = seen.get(region, -1) + 1
         meta = dict(format="VAMAS", technique=tech, source=source, photon_energy=hv,
                     source_strength=source_strength, analyser_mode=analyser_mode,
                     pass_energy=pass_energy, work_function=work_fn, dwell=dwell_eff,
-                    sweeps=max(scans, 1), date="%04d-%02d-%02d %02d:%02d:%02d" % tuple(date),
+                    sweeps=max(scans, 1), acq_time=acq, y_unit=corr_units[0], date="%04d-%02d-%02d %02d:%02d:%02d" % tuple(date),
                     block_id=block_id, sample_id=sample_id, institution=institution,
                     instrument=instrument, extra=add)
         if n_corr > 1 and "transmission" in corr_labels[1].lower():
             meta["transmission"] = vals[:, 1].tolist()
+        if keep_comments:
+            meta["comment"] = "\n".join(comment)
         out.append(Spectrum(region=region, be=be, cps=cps, sample=base, source_file=path,
                             index=seen[region], meta=meta))
     return out

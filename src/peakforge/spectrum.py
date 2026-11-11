@@ -66,11 +66,21 @@ class Spectrum:
     def key(self) -> str:
         return f"{self.sample}/{self.region}" + (f"#{self.index}" if self.index else "")
 
-    def counts(self) -> np.ndarray:
-        """Estimated total counts (for Poisson weighting)."""
-        dwell = float(self.meta.get("dwell", 1.0) or 1.0)
-        sweeps = float(self.meta.get("sweeps", 1) or 1)
-        return np.clip(self.cps * dwell * sweeps, 1.0, None)
+    def acq_time(self) -> float | None:
+        """Effective acquisition time per data point (s), so that counts = cps · acq_time follow
+        Poisson statistics. None when unknown (tables): the noise is then estimated from the data.
+        Readers set meta['acq_time'] when the file convention is known (see docs/METHODS.md)."""
+        t = self.meta.get("acq_time")
+        if t:
+            return float(t)
+        if self.meta.get("format") in (None, "table") or not self.meta.get("dwell"):
+            return None
+        return float(self.meta["dwell"]) * float(self.meta.get("sweeps", 1) or 1)
+
+    def counts(self) -> np.ndarray | None:
+        """Estimated counts per point (None if the acquisition time is unknown)."""
+        t = self.acq_time()
+        return None if t is None else np.clip(self.cps * t, 0.0, None)
 
     def to_dict(self) -> dict:
         return dict(region=self.region, sample=self.sample, source_file=self.source_file,

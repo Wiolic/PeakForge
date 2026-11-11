@@ -78,7 +78,8 @@ def charge_correct(project: str | None = None, sample: str | None = None, ref: f
             raise ValueError("sample is required with shift")
         p.set_shift(sample, shift)
         return {sample: shift}
-    return p.auto_charge(sample, ref)
+    out = p.auto_charge(sample, ref)
+    return dict(shifts=out, failed=p.charge_failures) if p.charge_failures else out
 
 
 @mcp.tool()

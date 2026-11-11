@@ -1,7 +1,6 @@
 """PeakForge main window."""
 from __future__ import annotations
 
-import json
 import os
 import time
 
@@ -529,7 +528,8 @@ class MainWindow(QMainWindow):
         rows = res.summary_rows(self.model)
         cols = [("label", tr("col_label")), ("center", tr("col_center")), ("center_err", "±"),
                 ("fwhm", tr("col_fwhm")), ("fwhm_err", "±"), ("area", tr("col_area")), ("area_err", "±"),
-                ("fraction", tr("col_frac")), ("center2", "4f5/2…"), ("shape", tr("col_shape"))]
+                ("fraction", tr("col_frac")), ("fraction_err", "±"), ("fwhm_apparent", tr("col_fwhm_app")),
+                ("center2", "4f5/2…"), ("shape", tr("col_shape"))]
         t.setColumnCount(len(cols))
         t.setHorizontalHeaderLabels([c[1] for c in cols])
         t.setRowCount(len(rows))
@@ -539,11 +539,12 @@ class MainWindow(QMainWindow):
                 txt = "" if v is None else (f"{v:.4g}" if isinstance(v, float) else str(v))
                 if k in ("center", "center2") and isinstance(v, float):
                     txt = f"{v:.2f}"
-                if k == "fraction" and isinstance(v, float):
+                if k in ("fraction", "fraction_err") and isinstance(v, float):
                     txt = f"{v:.1f}"
                 t.setItem(i, j, QTableWidgetItem(txt))
         t.resizeColumnsToContents()
-        msg = f"{tr('rms')} {res.rms_pct:.2f} %     χ²ᵣ {res.chi2_red:.2f}     BIC {res.bic:.1f}"
+        approx = "≈" if res.noise == "estimated" else ""
+        msg = f"{tr('rms')} {res.rms_pct:.2f} %     χ²ᵣ {approx}{res.chi2_red:.2f}     BIC {res.bic:.1f}"
         if res.bound_hits:
             msg += f"     ⚠ {len(res.bound_hits)} @bounds"
             self.metric_lbl.setToolTip("\n".join(res.bound_hits))
@@ -791,6 +792,8 @@ class MainWindow(QMainWindow):
         out = self.project.auto_charge()
         self.say("C 1s → " + str(self.project.settings.get("charge_ref", 284.8)) + " eV: " +
                  ", ".join(f"{k} {v:+.2f}" for k, v in out.items()))
+        for smp, why in self.project.charge_failures.items():
+            self.say(f"{tr('charge_failed')} {smp}: {why}")
         self.refresh_tree()
 
     def set_shift(self, sample: str | None = None):
@@ -826,7 +829,9 @@ class MainWindow(QMainWindow):
                     it.setData(Qt.ItemDataRole.UserRole, e["region"])
                 t.setItem(i, j, it)
         t.resizeColumnsToContents()
+        t.setToolTip(tr("quant_method"))
         t.blockSignals(False)
+        self.say(tr("quant_method"))
         self.tabs.setCurrentWidget(t)
 
     def _rsf_edited(self, it):

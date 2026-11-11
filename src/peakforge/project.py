@@ -55,6 +55,7 @@ class Project:
         self.data = data
         self.spectra: dict[str, Spectrum] = {}
         self.results: dict[str, FitResult] = {}
+        self.charge_failures: dict[str, str] = {}
         self._load_spectra()
 
     # ------------------------------------------------------------------ create / open / save
@@ -233,15 +234,21 @@ class Project:
         self.save()
 
     def auto_charge(self, sample: str | None = None, ref: float | None = None) -> dict[str, float]:
-        """C 1s C–C → ref (default project setting, 284.8 eV). Returns {sample: shift}."""
+        """C 1s C–C → ref (default project setting, 284.8 eV). Returns {sample: shift}; samples whose
+        C 1s peak cannot be located reliably are skipped and listed in self.charge_failures."""
         ref = float(ref if ref is not None else self.settings.get("charge_ref", 284.8))
         out = {}
+        self.charge_failures: dict[str, str] = {}
         for smp in ([sample] if sample else self.samples()):
             ks = self.keys("C 1s", smp)
             if not ks:
                 continue
             s = self.spectra[ks[0]]
-            c = quant.find_c1s_reference(s.be, s.cps)
+            try:
+                c = quant.find_c1s_reference(s.be, s.cps)
+            except ValueError as e:
+                self.charge_failures[smp] = str(e)      # shift left unchanged
+                continue
             out[smp] = round(ref - c, 3)
             d = self.data["samples"].setdefault(smp, {})
             d["shift"], d["shift_source"] = out[smp], f"C 1s {c:.2f} → {ref:.2f}"
@@ -304,7 +311,7 @@ class Project:
 
     def prepared(self, key: str, model: RegionModel):
         s = self.spectra[key]
-        return prepare(s.be, s.cps, model, self.shift(s.sample), s.counts())
+        return prepare(s.be, s.cps, model, self.shift(s.sample), acq_time=s.acq_time())
 
     def fit(self, key: str, model: RegionModel | None = None, n_starts: int = 3,
             save: bool = True) -> tuple[RegionModel, FitResult]:

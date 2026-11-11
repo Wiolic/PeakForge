@@ -13,6 +13,7 @@ T = {
     "new_project": ("新建工程…", "New project…"), "open_project": ("打开工程…", "Open project…"),
     "import": ("导入数据…", "Import data…"), "recent": ("最近的工程", "Recent projects"),
     "quit": ("退出", "Quit"), "auto_charge": ("自动荷电校准 (C 1s)", "Auto charge correction (C 1s)"),
+    "charge_failed": ("未自动校准（请手动设置位移）", "Not corrected automatically (set the shift by hand)"),
     "set_shift": ("手动设置荷电位移…", "Set charge shift…"), "fit": ("拟合", "Fit"),
     "fit_all": ("拟合全部", "Fit all"), "batch": ("批量应用当前模型…", "Apply model to others…"),
     "diagnose": ("拟合诊断", "Diagnostics"), "quant": ("元素定量", "Quantification"),
@@ -34,6 +35,7 @@ T = {
     "col_param": ("参数", "Param"), "col_value": ("值", "Value"), "col_min": ("下限", "Min"),
     "col_max": ("上限", "Max"), "col_vary": ("可变", "Vary"), "col_expr": ("联动表达式", "Link expr"),
     "col_err": ("±1σ", "±1σ"), "col_center": ("峰位 (eV)", "Center (eV)"), "col_fwhm": ("FWHM (eV)", "FWHM (eV)"),
+    "col_fwhm_app": ("实测 FWHM", "Apparent FWHM"),
     "col_area": ("面积", "Area"), "col_frac": ("占比 (%)", "Fraction (%)"),
     "no_project": ("没有打开的工程。请新建或打开一个工程。", "No project open. Create or open one."),
     "no_model": ("尚无模型：选择预设后点“应用”，或在谱图上右键添加峰。",
@@ -73,6 +75,11 @@ T = {
     "disclaimer": ("免责声明", "Disclaimer"), "disclaimer_ok": ("我已了解", "I understand"),
     "disclaimer_short": ("结果请与 CasaXPS / Avantage / MultiPak 比对", "Cross-check results with CasaXPS / Avantage / MultiPak"),
     "set_region": ("指定元素与能级…", "Assign element / core level…"),
+    "quant_method": ("定量：at% = (面积/RSF) 归一。内置 RSF 为近似 Scofield 截面（Al Kα，C 1s = 1），"
+                     "未做透射函数、非弹性平均自由程与角度校正，绝对 at% 可能偏差数十 %；定量工作请填写本仪器的 RSF。",
+                     "Quantification: at% = (area/RSF) normalised. Built-in RSFs are approximate Scofield cross "
+                     "sections (Al Kα, C 1s = 1) without transmission, IMFP or angular corrections — absolute at% "
+                     "can be off by tens of %; enter your instrument's RSFs for quantitative work."),
     "rsf": ("灵敏度因子 RSF", "RSF"), "at_pct": ("原子 %", "Atomic %"),
     "agent_text": ("在 Claude Code 等 Agent 中注册 PeakForge MCP 服务器后，可以用自然语言让它分析当前工程；"
                    "GUI 会自动显示 Agent 的修改。", "Register the PeakForge MCP server in your agent "

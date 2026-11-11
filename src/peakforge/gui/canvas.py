@@ -16,7 +16,7 @@ from PySide6.QtWidgets import QMenu, QVBoxLayout, QWidget
 
 from ..core.fit import FitResult, Prepared, fit
 from ..core.model import RegionModel
-from ..export.themes import comp_color, label_mathtext, region_mathtext, rgb01, theme
+from ..export.themes import comp_color, label_mathtext, rgb01, theme
 from .i18n import tr
 
 
@@ -236,7 +236,7 @@ class SpectrumView(QWidget):
         from ..core.fit import prepare
         x, y = self.raw
         try:
-            self.prep = prepare(x, y, self.model, 0.0)
+            self.prep = prepare(x, y, self.model, 0.0, acq_time=self.prep.acq_time)
             self.res = fit(self.model, self.prep, optimize=False)
         except Exception:        # noqa: BLE001
             return

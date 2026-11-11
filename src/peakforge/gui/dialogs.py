@@ -5,13 +5,13 @@ import json
 import os
 
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
+from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
                                QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
                                QPlainTextEdit, QPushButton, QSpinBox, QVBoxLayout)
 from PySide6.QtCore import Qt
 
 from ..export.origin import originpro_available
-from .i18n import lang, tr
+from .i18n import tr
 
 
 class ExportDialog(QDialog):
