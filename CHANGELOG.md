@@ -2,7 +2,7 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). "Method" entries change numbers; see `docs/METHODS_en.md`.
 
-## [1.0.0] — 2026-11-12 (not yet tagged)
+## [1.0.0] — 2026-11-13
 
 ### Added
 - Windows installer and portable zip (PyInstaller onedir + Inno Setup): `PeakForge.exe` (GUI) and `peakforge-cli.exe`
@@ -35,4 +35,4 @@ Format: [Keep a Changelog](https://keepachangelog.com/). "Method" entries change
 - Quantification uses approximate Scofield RSFs without transmission function, IMFP or angle corrections (stated in the UI and exports).
 - Background uncertainty is not included in fit errors (Smart Shirley: about 1.2× underestimated).
 - DS areas depend on the integration cut-off; Ir 4f with DS plus a pre-fixed Shirley background double counts the tail (tutorial, chapter 10).
-- The packaged app is unsigned (SmartScreen / antivirus warnings are expected) and has not yet been acceptance-tested on a clean machine.
+- The packaged app is unsigned (SmartScreen / antivirus warnings are expected); acceptance-tested on a second computer (packaging/ACCEPTANCE.md).
