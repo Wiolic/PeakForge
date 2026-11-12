@@ -15,7 +15,9 @@ import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QPointF, QSize, Qt, QUrl
-from PySide6.QtGui import QDesktopServices, QGuiApplication, QIcon, QImage, QTextDocument
+from PySide6.QtGui import (QBrush, QColor, QDesktopServices, QGuiApplication, QIcon, QImage, QKeySequence,
+                           QShortcut, QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument, QTextFrame,
+                           QTextLength, QTextTable)
 from PySide6.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QMainWindow, QPushButton, QStackedWidget, QTextBrowser,
                                QVBoxLayout, QWidget)
 
@@ -30,6 +32,8 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 REPO = "https://github.com/Wiolic/PeakForge"
 IMG_SCALE = 2          # docs/images/*.png and formula images are rendered at 2x their display size
 MAX_W = 720            # widest image in the reader (logical pixels)
+TEXT_W = 800           # widest text column (logical pixels); the page is centred when the window is wider
+FONT_PT, FONT_MIN, FONT_MAX = 13.0, 10.0, 20.0   # reading size (adjustable with Ctrl+wheel / Ctrl+ +/-/0, remembered)
 
 # key, i18n key of the title, icon, zh file, en file
 DOC_SPECS = [
@@ -95,20 +99,133 @@ def render_math(md: str, size: float = 14, color: str | None = None) -> tuple[st
     return "".join(parts), d
 
 
-class _Reader(QTextBrowser):
-    """Markdown reader: links to the other bundled documents switch the page, http(s) links open the browser."""
+def reader_css(pt: float) -> str:
+    """Default style sheet of the reader: sizes scale with the base size ``pt`` (Qt rich text has no rem/em)."""
+    t, m, ac = C["text"], C["muted"], C["accent_text"]
+    return (
+        f"body{{color:{t};}}"
+        f"p{{margin-top:6px;margin-bottom:10px;line-height:165%;}}"
+        f"li{{margin-top:3px;margin-bottom:5px;line-height:160%;}}"
+        f"h1{{font-size:{pt * 2.0:.1f}pt;font-weight:700;color:{t};margin-top:6px;margin-bottom:14px;}}"
+        f"h2{{font-size:{pt * 1.55:.1f}pt;font-weight:700;color:{ac};margin-top:34px;margin-bottom:12px;}}"
+        f"h3{{font-size:{pt * 1.25:.1f}pt;font-weight:700;color:{t};margin-top:24px;margin-bottom:8px;}}"
+        f"h4{{font-size:{pt * 1.08:.1f}pt;font-weight:700;color:{m};margin-top:18px;margin-bottom:6px;}}"
+        f"a{{color:{ac};}}"
+        f"code{{font-family:Consolas,'Cascadia Mono',monospace;background-color:{C['hover']};color:{t};}}"
+        f"pre{{font-family:Consolas,'Cascadia Mono',monospace;background-color:{C['hover']};margin-top:8px;margin-bottom:12px;}}"
+        f"blockquote{{color:{m};background-color:{C['accent_soft']};margin-top:10px;margin-bottom:14px;}}"
+        f"th{{font-weight:700;}}"
+    )
 
-    def __init__(self, win: "HelpWindow", size: float = 11.5):
+
+class _Reader(QTextBrowser):
+    """Markdown reader: links to the other bundled documents switch the page, http(s) links open the browser.
+    Readable by default: 13 pt text, 155 % line spacing, clearly graded headings, a column of at most TEXT_W."""
+
+    def __init__(self, win: "HelpWindow", size: float = FONT_PT):
         super().__init__()
         self.win = win
+        self.fname = ""
+        self.pt = size
         self.setOpenLinks(False)
         self.anchorClicked.connect(self._link)
+        self.document().setDocumentMargin(4)
+        self._apply_font()
+
+    def _apply_font(self) -> None:
+        # the app style sheet sets 9.5 pt on every widget, so the size must come from the widget's own style sheet
+        self.setStyleSheet(f"QTextBrowser{{background:{C['card']};border:none;font-size:{self.pt:g}pt;}}")
         f = self.document().defaultFont()
-        f.setPointSizeF(size)
+        f.setPointSizeF(self.pt)
         self.document().setDefaultFont(f)
-        self.setStyleSheet(f"QTextBrowser{{background:{C['card']};border:none;padding:6px 18px;}}")
-        self.document().setDefaultStyleSheet(
-            f"h1,h2,h3,h4{{color:{C['text']};}} a{{color:{C['accent_text']};}} td,th{{padding:4px 8px;}} li{{margin-bottom:4px;}}")
+        self.document().setDefaultStyleSheet(reader_css(self.pt))
+
+    def set_size(self, pt: float) -> None:
+        """Change the reading size and re-render the page (keeps the scroll position)."""
+        pt = max(FONT_MIN, min(FONT_MAX, round(pt * 2) / 2))
+        if pt == self.pt or not self.fname:
+            return
+        bar = self.verticalScrollBar()
+        frac = bar.value() / max(1, bar.maximum())
+        self.pt = pt
+        self._apply_font()
+        self.load(self.fname)
+        bar.setValue(round(frac * bar.maximum()))
+
+    def wheelEvent(self, e) -> None:              # noqa: ANN001
+        if e.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            self.win.change_font(1 if e.angleDelta().y() > 0 else -1)
+            e.accept()
+            return
+        super().wheelEvent(e)
+
+    def resizeEvent(self, e) -> None:             # noqa: ANN001
+        m = max(24, (self.width() - TEXT_W) // 2)     # centre the text column, 24 px minimum gutter
+        self.setViewportMargins(m, 8, m, 16)
+        super().resizeEvent(e)                        # after the margins: the document is laid out for the column
+
+    def _style_blocks(self) -> None:
+        """Qt's Markdown import ignores style sheets: grade the headings and set line / paragraph spacing by hand."""
+        pt = self.pt
+        heading = {1: (2.0, 4, 16, C["text"]), 2: (1.55, 34, 12, C["accent_text"]),
+                   3: (1.25, 24, 8, C["text"]), 4: (1.08, 18, 6, C["muted"])}
+        doc = self.document()
+        doc.setUndoRedoEnabled(False)
+        block = doc.begin()
+        while block.isValid():
+            bf = block.blockFormat()
+            nb = QTextBlockFormat(bf)
+            cur = QTextCursor(block)
+            lvl = bf.headingLevel()
+            in_table = cur.currentTable() is not None
+            if lvl in heading:
+                k, top, bottom, col = heading[lvl]
+                nb.setTopMargin(top)
+                nb.setBottomMargin(bottom)
+                nb.setLineHeight(120, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+                cf = QTextCharFormat()
+                cf.setFontPointSize(pt * k)
+                cf.setFontWeight(700)
+                cf.setForeground(QBrush(QColor(col)))
+                cur.select(QTextCursor.SelectionType.BlockUnderCursor)
+                cur.mergeCharFormat(cf)
+            elif in_table:
+                nb.setLineHeight(145, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+            elif block.textList() is not None:
+                nb.setTopMargin(2)
+                nb.setBottomMargin(6)
+                nb.setLineHeight(150, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+            else:
+                nb.setTopMargin(4)
+                nb.setBottomMargin(10)
+                nb.setLineHeight(155, QTextBlockFormat.LineHeightTypes.ProportionalHeight.value)
+            QTextCursor(block).setBlockFormat(nb)
+            block = block.next()
+
+    def _style_tables(self) -> None:
+        """Qt's Markdown tables are bare: add padding, light borders and a shaded header row."""
+        border = QBrush(QColor(C["border_strong"]))
+        head = QColor(C["accent_soft"])
+
+        def walk(frame: QTextFrame) -> None:
+            for ch in frame.childFrames():
+                if isinstance(ch, QTextTable):
+                    fmt = ch.format()
+                    fmt.setBorder(1)
+                    fmt.setBorderBrush(border)
+                    fmt.setCellPadding(8)
+                    fmt.setCellSpacing(0)
+                    fmt.setTopMargin(8)
+                    fmt.setBottomMargin(14)
+                    fmt.setWidth(QTextLength(QTextLength.Type.PercentageLength, 100))
+                    ch.setFormat(fmt)
+                    for c in range(ch.columns()):
+                        cell = ch.cellAt(0, c)
+                        cf = cell.format().toTableCellFormat()
+                        cf.setBackground(head)
+                        cell.setFormat(cf)
+                walk(ch)
+        walk(self.document().rootFrame())
 
     def figure_at(self, pos: QPointF) -> str | None:
         """docs/images file under a viewport position (formulas excluded), else None."""
@@ -149,9 +266,12 @@ class _Reader(QTextBrowser):
         except OSError as e:
             log.warning("help: cannot read %s: %s", p, e)
             md = f"{fname}\n\n({e})"
-        md, mdir = render_math(md)
+        self.fname = fname
+        md, mdir = render_math(md, size=14 * self.pt / FONT_PT)
         self.setSearchPaths([str(DOCS), str(mdir)])
         self.setMarkdown(md)
+        self._style_blocks()
+        self._style_tables()
         self._sharp_images([DOCS, mdir])
 
 
@@ -186,8 +306,10 @@ class HelpWindow(QMainWindow):
         self.btn: dict[str, tuple[QPushButton, QWidget]] = {}
         self.readers: dict[str, _Reader] = {}
         grp = QButtonGroup(self)
+        pt = i18n.settings().get("help_font", FONT_PT)
+        pt = float(pt) if isinstance(pt, (int, float)) else FONT_PT
         for key, tkey, ic, _zh, _en in DOC_SPECS:
-            r = _Reader(self)
+            r = _Reader(self, max(FONT_MIN, min(FONT_MAX, pt)))
             r.load(doc_file(key, self.lang))
             self.readers[key] = r
             self._add(v, grp, key, tr(tkey), ic, r)
@@ -197,6 +319,18 @@ class HelpWindow(QMainWindow):
         h.addWidget(self.stack, 1)
         self.setCentralWidget(root)
         self.show_tab("gui")
+        for keys, step in (("Ctrl++", 1), ("Ctrl+=", 1), ("Ctrl+-", -1)):
+            QShortcut(QKeySequence(keys), self, activated=lambda st=step: self.change_font(st))
+        QShortcut(QKeySequence("Ctrl+0"), self, activated=lambda: self.change_font(0))
+
+    def change_font(self, step: int) -> None:
+        """Ctrl+wheel / Ctrl +,-: bigger or smaller text in all documents (0 = default); remembered."""
+        cur = next(iter(self.readers.values())).pt
+        new = FONT_PT if step == 0 else cur + 1 * step
+        new = max(FONT_MIN, min(FONT_MAX, new))
+        for r in self.readers.values():
+            r.set_size(new)
+        i18n.save_setting("help_font", new)
 
     def _add(self, v: QVBoxLayout, grp: QButtonGroup, key: str, title: str, ic: str, page: QWidget) -> None:
         b = QPushButton("  " + title.replace("&", "&&"))

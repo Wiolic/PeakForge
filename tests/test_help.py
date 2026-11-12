@@ -182,3 +182,34 @@ def test_reader_images_are_hidpi_and_clickable(qapp):
     hits = {r.figure_at(QPointF(x, y)) for x in range(10, vw, 40) for y in range(10, vh, 20)}
     assert "images/gui_main.png" in hits                           # a click there opens the full-size file
     w.close()
+
+
+def test_reader_is_readable_and_font_adjustable(qapp, monkeypatch):
+    from peakforge.gui import help as H
+    from peakforge.gui import i18n
+    saved = {}
+    monkeypatch.setattr(i18n, "save_setting", lambda k, v: saved.__setitem__(k, v))   # never touch the real settings
+    w = H.HelpWindow()
+    r = w.readers["tutorial"]
+    assert r.pt >= 13 and r.document().defaultFont().pointSizeF() >= 13
+    heads, body = {}, []
+    b = r.document().begin()
+    while b.isValid():
+        lvl = b.blockFormat().headingLevel()
+        if lvl:
+            heads.setdefault(lvl, b.charFormat().fontPointSize() or b.begin().fragment().charFormat().fontPointSize())
+        if b.text().strip() and not lvl and b.blockFormat().lineHeight() >= 140:
+            body.append(b.blockFormat().lineHeight())
+        b = b.next()
+    levels = sorted(heads)
+    assert len(levels) >= 2 and all(heads[a] > heads[c] for a, c in zip(levels, levels[1:])), heads   # graded headings
+    assert body and min(body) >= 140                                                                     # roomy lines
+    before = r.pt
+    w.change_font(1)
+    assert all(x.pt == before + 1 for x in w.readers.values()) and saved["help_font"] == before + 1
+    for _ in range(30):
+        w.change_font(1)
+    assert all(x.pt == H.FONT_MAX for x in w.readers.values())
+    w.change_font(0)
+    assert all(x.pt == H.FONT_PT for x in w.readers.values())
+    w.close()
