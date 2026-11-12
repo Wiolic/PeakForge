@@ -51,11 +51,22 @@ jobs:
     needs: [windows]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - name: Release notes from CHANGELOG.md (this version's section only; no commit list)
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '
+            /^## \[/ { if (on) exit; if (index($0, "## [" v "]") == 1) { on = 1; next } }
+            on { print }' CHANGELOG.md > notes.md
+          test -s notes.md || (echo "no CHANGELOG.md section for $v" && exit 1)
       - uses: actions/download-artifact@v4
         with:
           path: assets
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          name: PeakForge ${{ github.ref_name }}
+          body_path: notes.md
           files: assets/*
-          generate_release_notes: true
+          generate_release_notes: false
