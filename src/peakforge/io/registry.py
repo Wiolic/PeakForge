@@ -38,6 +38,10 @@ class Reader:
     def read(self, path: str, template: dict | None = None) -> list[Spectrum]:
         raise NotImplementedError
 
+    def companions(self, path: str) -> list[str]:
+        """Other files/folders that belong to `path` and must be copied with it into a project."""
+        return []
+
 
 class VamasReader(Reader):
     name, label, suffixes = "vamas", ("VAMAS (ISO 14976)", "VAMAS (ISO 14976)"), (".vms", ".vamas")
@@ -86,6 +90,37 @@ class TableReader(Reader):
         return read_table(path, template=template)
 
 
+class ThermoVgdReader(Reader):
+    name, label = "thermo_vgd", ("Thermo Avantage（.vgp 实验 / .VGD）", "Thermo Avantage (.vgp experiment / .VGD)")
+    suffixes = (".vgp", ".vgd")
+
+    def detect(self, path, head):
+        ext = os.path.splitext(path)[1].lower()
+        if ext not in self.suffixes:            # .xls is OLE2 too: decide by suffix
+            return 0
+        return 95 if head.startswith(bytes.fromhex("d0cf11e0a1b11ae1")) else 40
+
+    def read(self, path, template=None):
+        from .thermo_vgd import VGDError, read_experiment
+        try:
+            sps = read_experiment(path)
+        except VGDError as e:
+            raise ReadError(f"{os.path.basename(path)}: {e}", f"{os.path.basename(path)}：{e}") from e
+        if not sps:
+            raise ReadError(f"{os.path.basename(path)}: the experiment contains no spectra",
+                            f"{os.path.basename(path)}：该实验中没有谱")
+        return sps
+
+    def companions(self, path):
+        if path.lower().endswith(".vgp"):
+            from .thermo_vgd import VGDError, data_folder
+            try:
+                return [data_folder(path)]
+            except VGDError:
+                return []
+        return []
+
+
 def _numeric_line(line: str) -> bool:
     import re
     toks = [t for t in re.split(r"[\s,;]+", line.strip()) if t]
@@ -98,7 +133,7 @@ def _numeric_line(line: str) -> bool:
     return True
 
 
-REGISTRY: list[Reader] = [VamasReader(), PhiSpeReader(), TableReader()]
+REGISTRY: list[Reader] = [VamasReader(), PhiSpeReader(), ThermoVgdReader(), TableReader()]
 BY_NAME = {r.name: r for r in REGISTRY}
 # names written by older versions in project "files[].format" / Spectrum.meta["format"]
 ALIASES = {"VAMAS": "vamas", "PHI SPE": "phi_spe"}

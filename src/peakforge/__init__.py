@@ -1,5 +1,5 @@
 """PeakForge — XPS analysis: read, calibrate, fit, export to Origin."""
-__version__ = "0.2.0"
+__version__ = "1.0.0"
 APP_NAME = "PeakForge"
 AUTHORS = "Eggy & Claude Opus 5.5"
 CREDIT = f"Developed by {AUTHORS}"

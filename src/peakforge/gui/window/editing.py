@@ -3,6 +3,7 @@ from __future__ import annotations
 
 
 import numpy as np
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (QInputDialog, QTableWidgetItem)
 
 from ... import presets
@@ -10,7 +11,7 @@ from ...core.fit import fit as run_fit
 from ...core.model import Component, Param, RegionModel
 from ...logs import log
 from ...schema import SchemaError
-from ..i18n import tr
+from ..i18n import flag_text, tr
 
 
 class EditMixin:
@@ -50,6 +51,7 @@ class EditMixin:
         if self.model is not None and self.model.preset:
             bits.append(self.model.preset)
         self.plot_sub.setText("   ·   ".join(bits))
+        self.view.theme = p.figure_theme(key, len(self.model.components) if self.model is not None else 8)
         self.view.show_spectrum(s.be + sh, s.cps, title, self.model, prep, res, keep_view)
         self.panel.set_model(self.model, s.region, res.stderr if res is not None else None)
         self._fill_results(res)
@@ -76,15 +78,35 @@ class EditMixin:
                 if k in ("fraction", "fraction_err") and isinstance(v, float):
                     txt = f"{v:.1f}"
                 t.setItem(i, j, QTableWidgetItem(txt))
+        # quality flags (core.quality): tint the rows of flagged components, red for errors
+        flags = getattr(res, "flags", None) or []
+        worst = {}
+        for f in flags:
+            if f.get("component"):
+                worst[f["component"]] = "error" if f["level"] == "error" else worst.get(f["component"], "warning")
+        for i, r in enumerate(rows):
+            lvl = worst.get(r["component"])
+            if lvl:
+                col = QColor(255, 205, 205) if lvl == "error" else QColor(255, 236, 196)
+                for j in range(t.columnCount()):
+                    if t.item(i, j) is not None:
+                        t.item(i, j).setBackground(col)
+                        t.item(i, j).setToolTip("\n".join(flag_text(f) for f in flags
+                                                          if f.get("component") == r["component"]))
         t.resizeColumnsToContents()
         approx = "≈" if res.noise == "estimated" else ""
         msg = f"{tr('rms')} {res.rms_pct:.2f} %     χ²ᵣ {approx}{res.chi2_red:.2f}     BIC {res.bic:.1f}"
-        if res.bound_hits:
-            msg += f"     ⚠ {len(res.bound_hits)} @bounds"
-            self.metric_lbl.setToolTip("\n".join(res.bound_hits))
-        else:
-            self.metric_lbl.setToolTip("")
+        n_err = sum(f["level"] == "error" for f in flags)
+        if flags:
+            msg += f"     {'✖' if n_err else '⚠'} {tr('quality_flags')} {len(flags)}"
+        self.metric_lbl.setToolTip("\n".join(("✖ " if f["level"] == "error" else "⚠ ") + flag_text(f) for f in flags))
+        self.metric_lbl.setStyleSheet("color: #c0392b; font-weight: bold;" if n_err else "")
         self.metric_lbl.setText(msg + "   ")
+        key = (self.key, round(res.bic, 6))
+        if flags and getattr(self, "_flags_logged", None) != key:      # once per new result
+            self._flags_logged = key
+            for f in flags:
+                self.say(("✖ " if f["level"] == "error" else "⚠ ") + f"{tr('quality_flags')}: {flag_text(f)}")
 
     def _store(self, push_undo=True):
         """Save the current model; False when it was refused (invalid: kept in memory only)."""

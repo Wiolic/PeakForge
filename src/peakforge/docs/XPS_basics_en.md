@@ -215,9 +215,11 @@ Common practice and its problems:
 | Evaporated gold / admixed standard | Au 4f₇/₂ etc. | may alter the surface; Au and sample are not necessarily at the same potential |
 | Auger parameter | section 3 | a chemical-state criterion, not a correction |
 
-PeakForge's "Auto charge correction (C 1s)" looks for the strongest peak within 283–287 eV, fits its low-BE side and top,
-and moves it to the reference (default 284.8 eV, a project setting); when no reliable peak is found it **refuses** and
-reports the sample — the criteria are in METHODS section 7. **State the reference peak and value in publications** so
+PeakForge's "Auto charge correction (C 1s)" takes the **lowest-BE** prominent peak within ±6 eV of the reference
+(C–C lies below C–O, C=O, CF₂ and the K 2p / Ir 4d lines that often share the C 1s window), fits it locally and moves it
+to the reference (default 284.8 eV; reference region and energy are project settings, e.g. Au 4f7/2 at 84.0 eV). When the
+result is doubtful (large shift, weak or broad peak, unresolved low-BE shoulder) it **does not apply it** and reports the
+sample with the proposed shift — the criteria are in METHODS section 7. **State the reference peak and value in publications** so
 that others can convert.
 
 ---

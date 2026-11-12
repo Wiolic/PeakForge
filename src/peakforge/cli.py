@@ -4,7 +4,7 @@
   peakforge init <folder> [--name N]      create a project
   peakforge add <project> <files...>      import .vms/.spe/.csv/.xlsx (copied to data/raw, read-only)
   peakforge status <project>              samples, spectra, shifts, fit state (JSON)
-  peakforge charge <project> [--ref 284.8] [--sample S] [--set VALUE]
+  peakforge charge <project> [--ref 284.8] [--region 'C 1s'] [--sample S] [--force] [--set VALUE]
   peakforge presets [--region "Ir 4f"]
   peakforge preset <project> <key> [<preset_id>]
   peakforge fit <project> [keys...] [--region R] [--sample S] [--starts 3] [--deep]
@@ -13,7 +13,7 @@
   peakforge diagnose <project> <key>
   peakforge batch <project> <source_key> [--fix fwhm eta]
   peakforge quant <project>
-  peakforge export <project> [--formats png xlsx origin] [--theme glacier] [--out DIR]
+  peakforge export <project> [--formats png xlsx origin] [--theme glacier] [--out DIR] [--key KEY --out FILE]
   peakforge mcp                           run the MCP server (stdio) for AI agents
   peakforge agent-config                  print MCP client configuration snippets
 """
@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 from . import __version__
@@ -48,6 +49,8 @@ def main(argv=None):
     dg.add_argument("project", nargs="?"); dg.add_argument("--out")
     s = sub.add_parser("status"); s.add_argument("project")
     c = sub.add_parser("charge"); c.add_argument("project"); c.add_argument("--ref", type=float)
+    c.add_argument("--region", help="reference region (default: project setting, C 1s)")
+    c.add_argument("--force", action="store_true", help="also apply low-confidence results")
     c.add_argument("--sample"); c.add_argument("--set", type=float, dest="value")
     pr = sub.add_parser("presets"); pr.add_argument("--region"); pr.add_argument("--project")
     ap_ = sub.add_parser("preset"); ap_.add_argument("project"); ap_.add_argument("key"); ap_.add_argument("preset_id", nargs="?")
@@ -64,8 +67,13 @@ def main(argv=None):
     q = sub.add_parser("quant"); q.add_argument("project")
     e = sub.add_parser("export"); e.add_argument("project"); e.add_argument("--formats", nargs="*", default=["png", "xlsx", "origin"])
     e.add_argument("--theme"); e.add_argument("--out")
+    e.add_argument("--key", help="export ONE figure (e.g. 'Sample1/Ir 4f'); --out is then a file "
+                                 "(.png .svg .pdf .tif .opju)")
+    e.add_argument("--dpi", type=int, default=300)
     sub.add_parser("mcp")
     sub.add_parser("agent-config")
+    sub.add_parser("selftest", help="check the installation (GUI import, help pages, package data) offscreen")
+    sub.add_parser("update", help="check GitHub for a newer release (contacts github.com only)")
 
     args = ap.parse_args(argv)
     if args.cmd in (None, "gui"):
@@ -74,6 +82,13 @@ def main(argv=None):
     if args.cmd == "mcp":
         from .mcp_server import main as mcp_main
         return mcp_main()
+    if args.cmd == "selftest":
+        from .selftest import run as selftest_run
+        return selftest_run()
+    if args.cmd == "update":
+        from . import update
+        _print(update.check())
+        return 0
     if args.cmd == "agent-config":
         from .agent import config_snippets
         _print(config_snippets())
@@ -117,7 +132,9 @@ def main(argv=None):
             p.set_shift(args.sample, args.value)
             _print({args.sample: args.value})
         else:
-            _print(p.auto_charge(args.sample, args.ref))
+            out = p.auto_charge(args.sample, args.ref, force=args.force, region=args.region)
+            _print(dict(shifts=out, failed=p.charge_failures, warnings=p.charge_warnings)
+                   if p.charge_failures or p.charge_warnings else out)
     elif args.cmd == "preset":
         _print(ops.apply_preset(p, args.key, args.preset_id))
     elif args.cmd == "fit":
@@ -138,8 +155,13 @@ def main(argv=None):
     elif args.cmd == "quant":
         _print(p.quantify())
     elif args.cmd == "export":
-        from .export.exporter import export_all
-        _print(export_all(p, out_dir=args.out, theme=args.theme, formats=tuple(args.formats)))
+        from .export.exporter import export_all, export_one
+        if args.key:
+            k = ops.resolve_key(p, args.key)
+            out = args.out or os.path.join(p.out_dir("export"), k.replace("/", "_").replace(" ", "") + ".png")
+            _print(export_one(p, k, out, theme=args.theme, dpi=args.dpi))
+        else:
+            _print(export_all(p, out_dir=args.out, theme=args.theme, formats=tuple(args.formats), dpi=args.dpi))
     return 0
 
 

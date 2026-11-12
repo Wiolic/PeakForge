@@ -10,7 +10,6 @@ from ... import APP_NAME
 from ...io import FILE_FILTER
 from ...io.registry import TableReader
 from ...logs import log
-from ...export.themes import theme_id
 from ...project import EXT, Project
 from ..i18n import tr
 
@@ -39,9 +38,7 @@ class ProjectMixin:
             return
         self._remember(self.project.path)
         self.setWindowTitle(f"{APP_NAME} — {self.project.name}")
-        th = theme_id(self.project.settings.get("theme"))
-        self.view.theme = th
-        self.palette.set_theme(th)
+        self.palette.set_theme(self.project.palette().get("combo"))
         self.brand_sub.setText(f"·   {self.project.name}")
         self._watch()
         self.refresh_tree()
@@ -175,6 +172,21 @@ class ProjectMixin:
         self.say(f"{tr('diag_done')} {path}")
         QMessageBox.information(self, APP_NAME, f"{tr('diag_done')}\n{path}")
         self.open_log_folder()
+
+    def check_updates(self):
+        from ... import update
+        from ..tasks import run_task
+
+        def done(info):
+            if info["newer"] is None:
+                QMessageBox.information(self, APP_NAME, tr("update_fail"))
+            elif not info["newer"]:
+                QMessageBox.information(self, APP_NAME, tr("update_none", v=info["current"]))
+            else:
+                how = (tr("update_how_frozen", page=info["page"]) if info["frozen"]
+                       else tr("update_how_dev") if info["editable"] else tr("update_how_pip"))
+                QMessageBox.information(self, APP_NAME, tr("update_new", latest=info["latest"], cur=info["current"], how=how))
+        run_task(self, update.check, done, busy_text=tr("check_update"))
 
     def open_log_folder(self):
         from PySide6.QtCore import QUrl

@@ -26,9 +26,9 @@ A common XPS workflow: fit in the instrument software (Thermo **Avantage**, PHI 
 | | PeakForge | Typical workflow (e.g. Avantage) |
 |---|---|---|
 | **Cost & licence** | Free, open source (MIT), any Windows PC | Commercial, licensed, often only on the instrument PC |
-| **Formats** | PHI `.spe`, VAMAS `.vms`, CSV/TXT, Excel in one place (SPE and VMS of one acquisition read identically) | Vendor software focuses on its own formats |
+| **Formats** | PHI `.spe`, VAMAS `.vms`, Thermo Avantage `.vgp`/`.VGD`, CSV/TXT, Excel in one place (SPE and VMS of one acquisition read identically) | Vendor software focuses on its own formats |
 | **Figures** | **One click → Origin project `.opju`**, one formatted graph per region (data, background, envelope, filled components, legend, labels), still editable in Origin | Export data, rebuild each graph in Origin |
-| **Palettes** | 24 systematic palettes (monochrome / contrast / soft / colour-blind safe), identical in app, images and Origin | Set colours by hand |
+| **Palettes** | One base colour per figure generates its component colours; 8 colour combos assign bases to a whole set of figures (same element, same colour) — identical in app, images and Origin | Set colours by hand |
 | **Batch** | Apply a tuned model to all samples in one click (optionally fixing widths/shape) + stacked comparison plots | Usually sample by sample |
 | **Elements** | All 90 elements Li–U, 169 core levels with spin–orbit data; any element can start from automatic peak search | Depends on software/version |
 | **Trust** | Built-in diagnostics: bound hits, correlated parameters, **ΔBIC when removing each component**, multi-start stability | Usually left to the user |
@@ -51,6 +51,14 @@ The same fits exported as an Origin project (`.opju`, one editable graph per reg
 
 **No programming background? Read the [Quickstart](QUICKSTART_en.md)** — install, a 10-step mouse-only workflow, and how to hand the analysis to an AI, all without a command line.
 
+**Windows installer (no Python needed)**: download `PeakForge-<version>-Setup.exe` (or the portable zip) from the
+[Releases page](https://github.com/Wiolic/PeakForge/releases/latest). It installs for the current user without admin rights.
+The installer is not code-signed, so Windows SmartScreen may say "Windows protected your PC": click *More info → Run anyway*;
+some antivirus programs also flag unsigned PyInstaller apps — compare the file with `SHA256SUMS.txt` on the Release page.
+The packaged app is not yet validated on a clean machine (see `packaging/ACCEPTANCE.md`).
+
+Or from source:
+
 1. Install Python 3.12 (tick *Add python.exe to PATH*) → download this repo as ZIP → double-click `installer.py`.
 2. **Mouse**: New project → Import data → Auto charge correction → preset or “Generic: automatic peak search” → Fit → Diagnostics → Export to Origin.
 3. **AI**: in PeakForge click **Agent → Connect AI to this folder** → open that folder in the Claude desktop app (Code tab) → describe the task.
@@ -69,10 +77,9 @@ The same fits exported as an Origin project (`.opju`, one editable graph per reg
 
 ## Palettes
 
-24 landscape palettes in 6 families × 4, each tagged by type; custom palettes can be saved.
-Waters: Glacier (default), Fjord, Lagoon, Abyss · Forests: Moss, Pinewood, Bamboo, Rainforest · Earth: Desert, Canyon, Loess, Badlands · Skies: Dawn, Dusk, Aurora, Twilight · Stone: Basalt, Granite, Slate, Highland · Fields: Lavender, Meadow, Autumn, Prairie.
+Pick **one base colour** per figure (18 evenly spaced hues + graphite + slate); the component colours are generated from it in OKLCH: fixed hue (±15° when there are many components), graded lightness, neighbours alternating dark/light so that they contrast; a single-colour "gradient" mode is available too.
 
-![Palettes](docs/images/palettes.png)
+A *combo* (Glacier · Fjord · Rainforest · Desert · Canyon · Dusk · Aurora · Meadow) is a set of bases for a whole set of figures: each element gets the next base, the same element has the same colour in every sample, C 1s / O 1s use fixed neutrals. Right-click a figure → "Colours…" to change one figure. The 24 theme ids of version ≤ 0.2 are mapped to the closest combo when a project opens; custom palettes (`~/.peakforge/themes/*.json`) still work.
 
 ## For programmers
 
@@ -82,6 +89,7 @@ peakforge gui
 peakforge init D:/xps/proj --name IrTaOx && peakforge add D:/xps/proj data/*.spe
 peakforge charge D:/xps/proj && peakforge fit D:/xps/proj --region "Ir 4f" --deep
 peakforge export D:/xps/proj --formats png xlsx origin --theme fjord
+peakforge export D:/xps/proj --key "Sample/Ir 4f" --out fig.svg    # one figure
 peakforge add D:/xps/proj lab.csv --template mylab   # column template saved in the project
 peakforge validate D:/xps/proj     # project file, templates, models, presets
 peakforge diag D:/xps/proj         # diagnostics bundle (no raw data)

@@ -126,6 +126,7 @@ class FitResult:
     nfev: int = 0
     noise: str = "estimated"                     # basis of χ²ᵣ: 'counting' | 'estimated'
     noise_ratio: float = float("nan")            # data noise / counting noise (variance), counting only
+    flags: list[dict] = field(default_factory=list)   # quality flags (core.quality), computed after the fit
 
     def summary_rows(self, model: RegionModel) -> list[dict]:
         rows = []
@@ -153,7 +154,8 @@ class FitResult:
                     aic=self.aic, bic=self.bic, n_free=self.n_free, bound_hits=self.bound_hits,
                     noise=self.noise, noise_ratio=None if not np.isfinite(self.noise_ratio) else self.noise_ratio,
                     fractions=self.fractions, areas=self.areas, values=self.values,
-                    stderr=self.stderr, components=self.summary_rows(model), starts=self.starts)
+                    stderr=self.stderr, components=self.summary_rows(model), starts=self.starts,
+                    flags=self.flags)
 
 
 def _free_vector(model: RegionModel):
@@ -330,11 +332,14 @@ def fit(model: RegionModel, prep: Prepared, n_starts: int = 1, seed: int = 0,
     ok = bool(r.success) if r is not None else True
     for s in starts:
         s.pop("x", None)
-    return FitResult(ok=ok, message=str(msg), values=vals, stderr=stderr, free_names=names, corr=corr,
-                     x=prep.x, y=prep.y, bg=prep.bg, comp_curves=curves, envelope=env, residual=res,
-                     areas=areas, fractions=fractions, rms_pct=rms_pct, chi2_red=float(chi2_red),
-                     aic=float(aic), bic=float(bic), n_free=k, bound_hits=hits, starts=starts,
-                     nfev=int(r.nfev) if r is not None else 0, noise=prep.noise, noise_ratio=float(noise_ratio))
+    out = FitResult(ok=ok, message=str(msg), values=vals, stderr=stderr, free_names=names, corr=corr,
+                    x=prep.x, y=prep.y, bg=prep.bg, comp_curves=curves, envelope=env, residual=res,
+                    areas=areas, fractions=fractions, rms_pct=rms_pct, chi2_red=float(chi2_red),
+                    aic=float(aic), bic=float(bic), n_free=k, bound_hits=hits, starts=starts,
+                    nfev=int(r.nfev) if r is not None else 0, noise=prep.noise, noise_ratio=float(noise_ratio))
+    from .quality import quality
+    out.flags = quality(model, prep, out)
+    return out
 
 
 def apply_result(model: RegionModel, res: FitResult) -> None:

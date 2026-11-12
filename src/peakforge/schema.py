@@ -447,12 +447,62 @@ def check_project_data(data: dict, fname: str, root: str | None = None) -> Repor
         elif _num(sd.get("shift")) and abs(sd["shift"]) > 15:
             rep.warn(f"{fname}.samples.{smp}.shift", f"charge shift {sd['shift']:+g} eV is unusually large")
     st = data.get("settings", {}) or {}
-    if _num(st.get("charge_ref")) and not 280 < st["charge_ref"] < 290:
+    creg = st.get("charge_region") or "C 1s"
+    if not isinstance(creg, str):
+        rep.err(f"{fname}.settings.charge_region", "must be a region label such as 'C 1s'")
+    elif creg == "C 1s" and _num(st.get("charge_ref")) and not 280 < st["charge_ref"] < 290:
         rep.warn(f"{fname}.settings.charge_ref", f"{st['charge_ref']:g} eV is not a C 1s reference energy")
+    chk = st.get("charge_checks")
+    if chk is not None:
+        if not isinstance(chk, list):
+            rep.err(f"{fname}.settings.charge_checks", "must be a list of {region, be, tol}")
+        else:
+            for i, c in enumerate(chk):
+                w = f"{fname}.settings.charge_checks[{i}]"
+                if not isinstance(c, dict) or not isinstance(c.get("region"), str) or not _num(c.get("be")):
+                    rep.err(w, "needs 'region' (text) and 'be' (eV)")
+                elif "tol" in c and not (_num(c["tol"]) and c["tol"] > 0):
+                    rep.err(w + ".tol", "must be a positive number (eV)")
+    _check_palette(st.get("palette"), f"{fname}.settings.palette", rep)
     ro = data.get("region_override", {}) or {}
     if not isinstance(ro, dict) or not all(isinstance(v, str) for v in ro.values()):
         rep.err(f"{fname}.region_override", "must map spectrum key -> region label")
     return rep
+
+
+def _check_palette(pal, where: str, rep: "Report") -> None:
+    """settings.palette: wrong shape = error (the figures cannot be coloured), unknown ids = warning (the
+    automatic colour is used instead)."""
+    if pal is None:
+        return
+    from .export import themes as T
+    if not isinstance(pal, dict):
+        rep.err(where, "must be an object {combo, assign, figures}")
+        return
+    if "combo" in pal and pal["combo"] not in T.COMBOS and pal["combo"] not in T.THEMES:
+        rep.warn(f"{where}.combo", f"unknown colour combo {pal['combo']!r}; using '{T.DEFAULT_COMBO}'")
+    asg = pal.get("assign") or {}
+    if not isinstance(asg, dict):
+        rep.err(f"{where}.assign", "must map region or element -> base colour")
+        asg = {}
+    for k, b in asg.items():
+        if b not in T.BASE_COLORS:
+            rep.warn(f"{where}.assign.{k}", f"unknown base colour {b!r}; automatic colour used")
+    figs = pal.get("figures") or {}
+    if not isinstance(figs, dict):
+        rep.err(f"{where}.figures", "must map spectrum key -> {base, mode, colors}")
+        return
+    for k, f in figs.items():
+        if not isinstance(f, dict):
+            rep.err(f"{where}.figures.{k}", "must be an object {base, mode, colors}")
+            continue
+        if f.get("base") is not None and f["base"] not in T.BASE_COLORS:
+            rep.warn(f"{where}.figures.{k}.base", f"unknown base colour {f['base']!r}; automatic colour used")
+        if f.get("mode") is not None and f["mode"] not in T.MODES:
+            rep.warn(f"{where}.figures.{k}.mode", f"unknown mode {f['mode']!r}; 'series' used")
+        bad = [c for c in (f.get("colors") or []) if not (isinstance(c, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", c))]
+        if bad:
+            rep.warn(f"{where}.figures.{k}.colors", f"not #RRGGBB: {bad[:3]}; manual colours ignored")
 
 
 def validate_project(path: str, deep: bool = True) -> Report:

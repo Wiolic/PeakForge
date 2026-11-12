@@ -31,9 +31,9 @@ def make_spec(items: list[tuple[str, str, RegionModel, FitResult]], out_dir: str
               th_name: str | None = None, png: bool = False) -> dict:
     """items: [(sample_label, region, model, result)]"""
     os.makedirs(out_dir, exist_ok=True)
-    th = theme(th_name)
     graphs = []
-    for sample, region, model, res in items:
+    for i_, (sample, region, model, res) in enumerate(items):
+        th = theme(th_name[i_] if isinstance(th_name, (list, tuple)) else th_name)
         df, meta = curve_table(model, res)
         book = _safe(f"{sample}_{region.replace(' ', '')}")
         csv = os.path.join(out_dir, book + ".csv")

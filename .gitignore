@@ -19,3 +19,5 @@ test_data/
 output/
 .claude/
 tests/local/
+.venv-build/
+tests/data/XPS/

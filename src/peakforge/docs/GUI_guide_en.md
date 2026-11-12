@@ -14,8 +14,7 @@ here); the physics is in [XPS basics](XPS_basics_en.md); formulas and algorithms
 
 - Installing and starting: see "Getting started" in the README. On first start a disclaimer appears (once per version); read it again
   any time under **Help → Disclaimer**.
-- Interface language: **View → Language** switches Chinese / English; the window restarts and reopens the current project. The figure theme
-  (palette) is the drop-down at the right of the top bar.
+- Interface language: **View → Language** switches Chinese / English; the window restarts and reopens the current project. The colours: the drop-down at the right of the top bar picks a *colour combo* for all figures; for one figure right-click the plot → **Colours…** and choose a base colour (the component colours are generated from it, as a "series" or a single-colour "gradient"), or use **View → Colour scheme**. The same element has the same colour in every sample; C 1s / O 1s default to fixed neutrals.
 
 ![Main window](images/gui_main.png)
 
@@ -38,7 +37,7 @@ here); the physics is in [XPS basics](XPS_basics_en.md); formulas and algorithms
 
 ## 3　Importing data
 
-- **File → Import data… (Ctrl+I)**: select one or more `.spe` (PHI), `.vms` (VAMAS), `.csv/.txt/.dat/.xy`, `.xlsx/.xls` files. The originals are **copied** to the project's `data/raw`.
+- **File → Import data… (Ctrl+I)**: select one or more `.spe` (PHI), `.vms` (VAMAS), `.vgp` (Thermo Avantage experiment — keep the `.DATA` folder of the same name next to it; a single `.VGD` also works), `.csv/.txt/.dat/.xy`, `.xlsx/.xls` files. The originals are **copied** to the project's `data/raw`.
   Every region in a file becomes a row in the sample tree; the sample name is the file name.
 - When a table **cannot be recognised automatically** the column-mapping wizard opens by itself; you can also open it by hand: **File → Import table with column mapping…**.
 
@@ -61,8 +60,12 @@ In the wizard choose: the energy column; whether energy is binding or kinetic (f
 
 Charging shifts the whole spectrum; correct it before judging chemical states.
 
-- **Analysis → Auto charge correction (C 1s)**: finds the main peak in each sample's C 1s and moves it to the reference (default 284.8 eV, stored in the project setting `charge_ref`).
-  If the peak sits at the window edge, is absent or does not converge, the correction is **refused** and the log names the sample and the reason ("Not corrected automatically") — set the shift by hand.
+- **Analysis → Auto charge correction (C 1s)**: in each sample's reference region (default C 1s) takes the lowest-BE prominent peak within ±6 eV of the reference (C–C) and moves it to the reference (default 284.8 eV).
+  If there is no peak, or the result is doubtful (shift outside −3…+4 eV, weak or broad peak, low-BE shoulder), it is **not applied**: a message box and the log name the sample, the proposed shift and the reasons ("Not corrected automatically") — after checking, enter it with "Set charge shift…".
+- **Analysis → Charge reference…**: choose the reference region (e.g. Au 4f, O 1s) and binding energy, stored as the project settings `charge_region` / `charge_ref`.
+  The project file may also hold `charge_checks` (e.g. the lattice O 1s of a known oxide): after correction each is checked and a deviation beyond its tolerance is reported.
+- When a sample contains a fluoropolymer such as Nafion (a CF₂ peak about 7 eV above C–C in C 1s, or F 1s in the same sample), the shift is applied but a **warning** is shown:
+  the insulating membrane may charge differently from the catalyst — check against an internal reference (lattice O 1s, a metal line).
 - **Analysis → Set charge shift…**: enter the shift (eV) for the current sample; the current value is shown beside the sample name in the tree.
 - When this is trustworthy and the controversy around the C 1s reference: tutorial chapter 3; the uncertainty of the correction itself: METHODS.
 
@@ -129,7 +132,9 @@ so absolute values can be off by tens of %; see tutorial chapter 11. The "Log" t
 
 ![Export](images/gui_export.png)
 
-**Export → Export… (Ctrl+E)**: choose formats PNG / TIFF / SVG / PDF / Excel / Origin (`.opju`), the figure theme, DPI and the output folder (default `project/output/export`). The export runs in the background and opens the output folder when done.
+**Export → Export… (Ctrl+E)**: choose formats PNG / TIFF / SVG / PDF / Excel / Origin (`.opju`), the colours (default: the project colours incl. per-figure settings; untick to use another combo for this export), DPI and the output folder (default `project/output/export`). The export runs in the background and opens the output folder when done.
+
+**Export → Export current figure… (Ctrl+Shift+E)**, or right-click the plot → **Export this figure…**, writes only the figure on screen; the format follows the extension chosen in the save dialog (`.png` `.svg` `.pdf` `.tif`, or `.opju` for a one-graph Origin project — without Origin the data and a build script are written). CLI: `peakforge export <project> --key <spectrum> --out FILE`; MCP: `export_figure`.
 The Excel file holds component parameters, fit quality, quantification, curve data and the disclaimer. **Without Origin/originpro** the Origin item writes the data and a script `build_origin.py`;
 run `run -pyf build_origin.py` in Origin to get the project. Figures and exports are always in English.
 

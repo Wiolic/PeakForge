@@ -16,6 +16,7 @@ import os
 import re
 import shutil
 import stat
+import time
 
 import numpy as np
 
@@ -25,6 +26,7 @@ from .core.fit import FitResult, apply_result, fit, prepare
 from .core.model import RegionModel
 from .io import ReadError, read_file
 from .logs import log
+from .msg import Msg, exc_msg
 from .spectrum import Spectrum
 
 EXT = ".xpsproj"
@@ -57,6 +59,7 @@ class Project:
         self.spectra: dict[str, Spectrum] = {}
         self.results: dict[str, FitResult] = {}
         self.charge_failures: dict[str, str] = {}
+        self.charge_warnings: dict[str, list[str]] = {}
         self.model_reports: dict = {}           # key -> schema.Report of the last get_model()
         self.validation = None                  # schema.Report from Project.open()
         self._load_spectra()
@@ -72,7 +75,7 @@ class Project:
         if os.path.exists(path):
             return cls.open(path)
         data = dict(format="peakforge-project", version=__version__, name=name, created=_now(),
-                    modified=_now(), settings=dict(charge_ref=284.8, lang="zh", theme="glacier"),
+                    modified=_now(), settings=dict(charge_ref=284.8, lang="zh", theme="glacier", palette=dict(combo="glacier")),
                     files=[], samples={})
         p = cls(path, data)
         p.save()
@@ -98,7 +101,17 @@ class Project:
         tmp = self.path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self.data, f, ensure_ascii=False, indent=1)
-        os.replace(tmp, self.path)
+        # Windows: replacing fails while another handle (file watcher, antivirus, sync client) briefly has the
+        # target open -> retry for up to ~1 s before giving up
+        for i in range(20):
+            try:
+                os.replace(tmp, self.path)
+                return
+            except PermissionError:
+                if i == 19:
+                    raise
+                log.info("project save: %s busy, retrying", self.path)
+                time.sleep(0.05)
 
     def reload(self):
         with open(self.path, encoding="utf-8") as f:
@@ -199,6 +212,7 @@ class Project:
             if os.path.abspath(dst) != src:
                 shutil.copy2(src, dst)
                 os.chmod(dst, stat.S_IREAD | stat.S_IRGRP | stat.S_IROTH)
+                self._copy_companions(src, dst, sps[0].meta.get("reader", ""))
             rel = os.path.relpath(dst, self.root)
         else:
             rel = os.path.relpath(src, self.root)
@@ -215,6 +229,25 @@ class Project:
             keys.append(s.key)
         self.save()
         return keys
+
+    @staticmethod
+    def _copy_companions(src: str, dst: str, reader: str):
+        """Files/folders the reader needs next to the data file (Avantage: <name>.vgp + <name>.DATA/),
+        renamed like dst when dst got a numeric suffix."""
+        from .io.registry import BY_NAME
+        r = BY_NAME.get(reader)
+        if r is None:
+            return
+        s_stem, d_stem = os.path.splitext(os.path.basename(src))[0], os.path.splitext(os.path.basename(dst))[0]
+        for c in r.companions(src):
+            name = os.path.basename(c)
+            if name.lower().startswith(s_stem.lower()):
+                name = d_stem + name[len(s_stem):]
+            target = os.path.join(os.path.dirname(dst), name)
+            if os.path.isdir(c):
+                shutil.copytree(c, target, dirs_exist_ok=True)
+            else:
+                shutil.copy2(c, target)
 
     def remove_sample(self, sample: str):
         self.data["files"] = [f for f in self.data["files"] if f["sample"] != sample]
@@ -246,6 +279,59 @@ class Project:
                 seen.append(s.region)
         return seen
 
+    # ------------------------------------------------------------------ colours
+    def palette(self) -> dict:
+        """settings["palette"] (combo / assign / figures); projects of version <= 0.2 only have settings["theme"],
+        which is mapped to the closest combo."""
+        from .export.themes import legacy_palette
+        pal = self.settings.get("palette")
+        return pal if isinstance(pal, dict) else legacy_palette(self.settings.get("theme"))
+
+    def figure_theme(self, key: str | None, n: int | None = None, region: str | None = None,
+                     palette: dict | None = None) -> dict:
+        """Colours of the figure `key` (resolve_theme with this project's palette). n = number of components
+        (default: those of the stored model, else 8)."""
+        from .export.themes import resolve_theme
+        s = self.spectra.get(key) if key else None
+        region = region or (s.region if s else "")
+        if n is None:
+            rec = self.get_model_record(key) if key else None
+            n = len((rec or {}).get("model", {}).get("components", [])) or 8
+        regs = [x.region for x in self.spectra.values() if not x.is_survey]
+        return resolve_theme(self.palette() if palette is None else palette, key, region, regs, n)
+
+    def set_palette(self, combo: str | None = None, reset: bool = False, save: bool = True) -> dict:
+        """Choose the combo of the project; reset=True also drops all element / per-figure choices.
+        Keeps settings["theme"] = combo for older readers."""
+        from .export.themes import theme_id
+        pal = dict(self.palette())
+        if combo is not None:
+            pal["combo"] = theme_id(combo)
+        if reset:
+            pal.pop("assign", None)
+            pal.pop("figures", None)
+            pal.pop("mode", None)
+        self.settings["palette"] = pal
+        self.settings["theme"] = pal["combo"]
+        if save:
+            self.save()
+        return pal
+
+    def set_figure_color(self, key: str, base: str | None = None, mode: str | None = None,
+                         colors: list[str] | None = None, save: bool = True):
+        """Per-figure override; all None removes it (back to the combo)."""
+        pal = dict(self.palette())
+        figs = dict(pal.get("figures") or {})
+        d = {k: v for k, v in (("base", base), ("mode", mode), ("colors", colors)) if v}
+        if d:
+            figs[key] = d
+        else:
+            figs.pop(key, None)
+        pal["figures"] = figs
+        self.settings["palette"] = pal
+        if save:
+            self.save()
+
     def sample_label(self, sample: str) -> str:
         return self.data["samples"].get(sample, {}).get("label", sample)
 
@@ -262,27 +348,100 @@ class Project:
         d["shift"], d["shift_source"] = float(value), source
         self.save()
 
-    def auto_charge(self, sample: str | None = None, ref: float | None = None) -> dict[str, float]:
-        """C 1s C–C → ref (default project setting, 284.8 eV). Returns {sample: shift}; samples whose
-        C 1s peak cannot be located reliably are skipped and listed in self.charge_failures."""
-        ref = float(ref if ref is not None else self.settings.get("charge_ref", 284.8))
+    def auto_charge(self, sample: str | None = None, ref: float | None = None, force: bool = False,
+                    region: str | None = None) -> dict[str, float]:
+        """Reference line (project setting charge_region, default C 1s C–C) → ref (charge_ref, default
+        284.8 eV), see quant.find_reference. Returns {sample: shift}. Samples without a usable peak, or
+        whose result has low confidence (unless force=True), keep their shift and are listed in
+        self.charge_failures with the reason (and the proposed shift). Optional internal-consistency
+        checks (settings charge_checks = [{region, be, tol}]) add messages to self.charge_warnings."""
+        region = region or self.settings.get("charge_region") or "C 1s"
+        ref = self.charge_reference(region, ref)
         out = {}
         self.charge_failures: dict[str, str] = {}
+        self.charge_warnings: dict[str, list[str]] = {}
         for smp in ([sample] if sample else self.samples()):
-            ks = self.keys("C 1s", smp)
+            ks = self.keys(region, smp)
             if not ks:
                 continue
             s = self.spectra[ks[0]]
             try:
-                c = quant.find_c1s_reference(s.be, s.cps)
+                r = quant.find_reference(s.be, s.cps, ref, fluoro_check=region == "C 1s")
             except ValueError as e:
-                self.charge_failures[smp] = str(e)      # shift left unchanged
+                self.charge_failures[smp] = exc_msg(e)      # shift left unchanged
                 continue
-            out[smp] = round(ref - c, 3)
+            shift = round(ref - r.position, 3)
+            if r.confidence != "high" and not force:
+                self.charge_failures[smp] = Msg(f"{region} {r.position:.2f} eV → proposed shift {shift:+.2f} eV, "
+                                                "not applied: " + "; ".join(r.reasons), "charge_not_applied",
+                                                region=region, x=f"{r.position:.2f}", shift=f"{shift:+.2f}",
+                                                reasons=list(r.reasons))
+                continue
+            out[smp] = shift
             d = self.data["samples"].setdefault(smp, {})
-            d["shift"], d["shift_source"] = out[smp], f"C 1s {c:.2f} → {ref:.2f}"
+            d["shift"], d["shift_source"] = shift, f"{region} {r.position:.2f} → {ref:.2f}"
+            if r.reasons:
+                d["shift_source"] += " (forced: " + "; ".join(r.reasons) + ")"
+            notes = list(r.notes)
+            if region == "C 1s" and not notes:
+                notes += self._fluorine_note(smp, shift)
+            if notes:
+                self.charge_warnings.setdefault(smp, []).extend(notes)
+            self._charge_checks(smp, shift)
         self.save()
         return out
+
+    def charge_reference(self, region: str | None, ref: float | None) -> float:
+        """Reference energy for `region`: explicit `ref`; else the project's charge_ref when `region` is the
+        project's charge_region; else 284.8 eV for C 1s. Any other region needs an explicit energy (the stored
+        value belongs to a different line)."""
+        own = self.settings.get("charge_region") or "C 1s"
+        region = region or own
+        if ref is not None:
+            return float(ref)
+        if region == own:
+            return float(self.settings.get("charge_ref", 284.8))
+        if region == "C 1s":
+            return 284.8
+        raise ValueError(f"reference energy for {region} not given (the project setting {own} / "
+                         f"{self.settings.get('charge_ref', 284.8)} eV belongs to another line) — pass ref")
+
+    def _fluorine_note(self, smp: str, shift: float) -> list[str]:
+        """F 1s in the sample (narrow scan, else survey): a fluoropolymer binder/membrane (e.g. Nafion) may
+        charge differently from the active material even when its CF₂ line is outside the C 1s window.
+        The ±6 eV search around 688 eV only detects F 1s; it does not identify the compound."""
+        for k in self.keys("F 1s", smp) + [k for k in self.keys(sample=smp) if self.spectra[k].is_survey]:
+            s = self.spectra[k]
+            try:
+                q = quant.find_reference(s.be, s.cps, 688.0 - shift)
+            except ValueError:
+                continue
+            if q.snr >= 10:
+                return [Msg(f"F 1s present ({q.position + shift:.1f} eV after correction, {s.region}): if it is a "
+                            "fluoropolymer (e.g. Nafion), the insulating phase may charge differently from the "
+                            "active material — check against an internal reference before trusting the shift",
+                            "charge_f1s", x=f"{q.position + shift:.1f}", region=s.region)]
+        return []
+
+    def _charge_checks(self, smp: str, shift: float):
+        for chk in self.settings.get("charge_checks") or []:
+            ks = self.keys(chk.get("region", ""), smp)
+            if not ks:
+                continue
+            s = self.spectra[ks[0]]
+            be, tol = float(chk["be"]), float(chk.get("tol", 0.3))
+            try:
+                q = quant.find_reference(s.be, s.cps, be - shift, span=(-2.0, 2.0))
+            except ValueError as e:
+                err = exc_msg(e)
+                self.charge_warnings.setdefault(smp, []).append(
+                    Msg(f"{chk['region']}: {err}", "charge_check_error", region=chk["region"], err=err))
+                continue
+            got = q.position + shift
+            if abs(got - be) > tol:
+                self.charge_warnings.setdefault(smp, []).append(Msg(
+                    f"{chk['region']} lowest-BE peak at {got:.2f} eV after correction, expected {be:.2f} ± {tol:.2f} eV",
+                    "charge_check_off", region=chk["region"], x=f"{got:.2f}", be=f"{be:.2f}", tol=f"{tol:.2f}"))
 
     # ------------------------------------------------------------------ models
     def _model_path(self, key: str) -> str:
@@ -357,8 +516,34 @@ class Project:
             raise ValueError("; ".join(errs))
         return model, self.prepared(key, model)
 
+    def overlap_flags(self, key: str, model: RegionModel | None = None) -> list[dict]:
+        """Quality flags for other core levels (of elements measured in the same sample) that can lie in
+        the fit window of `key` (presets.overlapping_levels)."""
+        s = self.spectra[key]
+        if s.is_survey:
+            return []
+        els = {t.element for t in self.spectra.values() if t.sample == s.sample and t.element and not t.is_survey}
+        if s.element:
+            els.add(s.element)
+        sh = self.shift(s.sample)
+        lo, hi = (sorted(model.fit_range) if model is not None and model.fit_range
+                  else (float(s.be.min()) + sh, float(s.be.max()) + sh))
+        return [dict(level="warning", code="overlap",
+                     args=dict(level=h["level"], be=f"{h['be']:g}", lines=", ".join(f"{e:g}" for e in h["lines"]),
+                               shift=f"{presets.OVERLAP_SHIFT:g}"),
+                     text=f"{h['level']} (table ≈ {h['be']:g} eV; lines near {', '.join(f'{e:g}' for e in h['lines'])} eV, "
+                          f"up to +{presets.OVERLAP_SHIFT:g} eV in compounds) can lie in this window — include it "
+                          "in the model or check that it is negligible")
+                for h in presets.overlapping_levels(s.region, els, lo, hi)]
+
+    def _add_overlaps(self, key: str, model: RegionModel, res: FitResult) -> FitResult:
+        if res is not None and not any(f.get("code") == "overlap" for f in res.flags):
+            res.flags = list(res.flags) + self.overlap_flags(key, model)
+        return res
+
     def store_fit(self, key: str, model: RegionModel, res: FitResult, save: bool = True):
         """Record a finished fit (model already updated with apply_result)."""
+        self._add_overlaps(key, model, res)
         self.results[key] = res
         if save:
             self.set_model(key, model, res)
@@ -375,7 +560,7 @@ class Project:
         model = model or self.get_model(key)
         if model is None:
             return None
-        return fit(model, self.prepared(key, model), optimize=False)
+        return self._add_overlaps(key, model, fit(model, self.prepared(key, model), optimize=False))
 
     def result(self, key: str) -> FitResult | None:
         """Last fit result (in memory) or a re-evaluation of the stored model."""
@@ -415,6 +600,18 @@ class Project:
         o = presets.orbital(region)
         return o.get("rsf") if o else None
 
+    def rsf_for(self, key: str) -> float | None:
+        """RSF for one spectrum: a user value for its region wins; otherwise the level's tabulated RSF,
+        scaled down when the scan holds only one j sub-level (presets.subshell_fraction)."""
+        s = self.spectra[key]
+        user = self.settings.get("rsf", {})
+        if s.region in user:
+            return float(user[s.region])
+        o = presets.orbital(s.region)
+        if not o or not o.get("rsf"):
+            return None
+        return float(o["rsf"]) * presets.subshell_fraction(s)
+
     def set_rsf(self, region: str, value: float):
         self.settings.setdefault("rsf", {})[region] = float(value)
         self.save()
@@ -440,10 +637,17 @@ class Project:
                     if r is not None:
                         area = float(sum(r.areas[c.name] for c in m.components if c.in_total))
                         src = "fit"
+                rsf = self.rsf_for(k)
                 if area is None:
                     area = quant.raw_area(s.be, s.cps)
+                elif (rsf and presets.high_j_only(m) and presets.subshell_fraction(s) == 1.0
+                      and s.region not in self.settings.get("rsf", {})):
+                    r_ = (presets.orbital(f"{s.element} {(presets.orbital(s.region) or {}).get('level')}") or {}).get("ratio")
+                    if r_:
+                        rsf *= 1.0 / (1.0 + r_)      # fit covers the high-j line only (multiplet table)
+                        src += " (high-j)"
                 entries.append(dict(sample=smp, region=s.region, key=k, area=area, area_source=src,
-                                    rsf=self.rsf(s.region)))
+                                    rsf=rsf))
         return quant.atomic_percent(entries) + [dict(e, at_pct=None) for e in entries if not e.get("rsf")]
 
     # ------------------------------------------------------------------ summary
@@ -472,7 +676,7 @@ def build_model(s, sh: float, root: str, preset_id: str | None = None, n_peaks: 
         return presets.generic_model(s, sh, n_peaks)
     if preset_id:
         return presets.model_from_preset(preset_id, s, sh, project_dir=root)
-    cands = presets.presets_for(s.region, root)
+    cands = [p for p in presets.presets_for(s.region, root) if p.get("auto", True)]
     return (presets.model_from_preset(cands[0], s, sh, project_dir=root) if cands
             else presets.generic_model(s, sh, n_peaks))
 

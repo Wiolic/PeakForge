@@ -1,0 +1,61 @@
+name: Release
+
+# Push a v* tag (e.g. v1.0.0): build the Windows installer + portable zip with packaging/build.ps1 (pytest, size guard,
+# smoke test of the packaged program) and publish them with SHA256SUMS.txt to the GitHub Release of that tag.
+# Manual run (workflow_dispatch): the files are only uploaded as a workflow artifact, nothing is published.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  QT_QPA_PLATFORM: offscreen   # PYTHONUTF8 deliberately NOT set: the packaged app must work without it
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Version from the package
+        id: ver
+        shell: bash
+        run: |
+          python -m pip install -e . --quiet
+          echo "v=$(python -c "import peakforge;print(peakforge.__version__)")" >> "$GITHUB_OUTPUT"
+      - name: Tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: test "${GITHUB_REF_NAME#v}" = "${{ steps.ver.outputs.v }}" || (echo "tag $GITHUB_REF_NAME != package version ${{ steps.ver.outputs.v }}" && exit 1)
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Build (venv, pytest, PyInstaller, size guard, smoke test, installer, zip)
+        run: powershell -ExecutionPolicy Bypass -File packaging\build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            dist/PeakForge-*-Setup.exe
+            dist/PeakForge-*-portable.zip
+            dist/SHA256SUMS.txt
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: assets/*
+          generate_release_notes: true

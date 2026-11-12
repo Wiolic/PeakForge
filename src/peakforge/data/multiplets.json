@@ -1,0 +1,96 @@
+{
+ "_note": "Sourced multiplet / satellite envelopes per chemical species, used to build presets for ANY element (presets.multiplet_preset). Each species: peaks [BE eV, area %, FWHM eV]; the first peak is the reference. Values copied from the cited table and checked cell by cell (docs/dev/C0_literature_values.md, section F3 and I). Add elements as data only.",
+ "tables": {
+  "cr2p3_biesinger2011": {
+   "level": "Cr 2p",
+   "part": "high_j",
+   "name_en": "Cr 2p3/2 – species envelopes (Biesinger 2011)",
+   "name_zh": "Cr 2p3/2 化学态包络（Biesinger 2011）",
+   "source": "M. C. Biesinger et al., Appl. Surf. Sci. 257 (2011) 2717, Table 1 (monochromatic Al Kα, Kratos Axis Ultra; FWHM at 20 eV pass energy, NiCr2O4 at 10 eV (no 20 eV value printed); adventitious C 1s = 284.8 eV). Cr(0) is LA(1.3,4,5) in the paper, approximated by GL(30); Cr(III) hydroxide BE is for an aged hydroxide (fresh: 577.1 eV); Cr2O3 areas as printed sum to 103 %.",
+   "shape": "gl",
+   "m": 0.3,
+   "species": {
+    "Cr(0)": [[574.2, 100, 0.90]],
+    "Cr2O3": [[575.7, 36, 0.94], [576.7, 35, 0.94], [577.5, 19, 0.94], [578.5, 8, 0.94], [578.9, 5, 0.94]],
+    "Cr(OH)3": [[577.3, 100, 2.60]],
+    "FeCr2O4": [[575.9, 41, 1.20], [577.0, 39, 1.20], [577.9, 13, 1.20], [578.9, 7, 1.20]],
+    "NiCr2O4": [[575.2, 35, 1.09], [576.2, 34, 1.09], [577.0, 18, 1.09], [578.1, 9, 1.09], [579.2, 4, 1.09]],
+    "Cr(VI) mixed": [[579.5, 100, 1.50]],
+    "CrO3": [[579.6, 100, 1.38]]
+   }
+  },
+  "mn2p3_biesinger2011": {
+   "level": "Mn 2p",
+   "part": "high_j",
+   "name_en": "Mn 2p3/2 – species envelopes (Biesinger 2011)",
+   "name_zh": "Mn 2p3/2 化学态包络（Biesinger 2011）",
+   "source": "M. C. Biesinger et al., Appl. Surf. Sci. 257 (2011) 2717, Table 3 (monochromatic Al Kα, Kratos Axis Ultra; FWHM at 20 eV pass energy; MnO peak 6 is a shake-up with FWHM 3.5 eV; adventitious C 1s = 284.8 eV). Mn(0) peaks are LA(1.1,3.2,3) in the paper, approximated by GL(30). Pyrolusite omitted: its printed areas sum to 80.1 %.",
+   "shape": "gl",
+   "m": 0.3,
+   "species": {
+    "Mn(0)": [[638.6, 87.0, 0.79], [639.6, 13.0, 0.79]],
+    "MnO": [[640.2, 24.0, 1.23], [641.1, 27.8, 1.23], [642.1, 22.1, 1.23], [643.0, 12.5, 1.23], [644.2, 4.7, 1.23], [645.9, 9.1, 3.5]],
+    "Mn2O3": [[640.8, 18.9, 1.75], [641.9, 44.5, 1.75], [643.1, 25.3, 1.75], [644.6, 8.5, 1.75], [646.2, 3.1, 1.75]],
+    "MnOOH": [[641.0, 24.0, 1.35], [641.7, 24.0, 1.35], [642.5, 27.8, 1.35], [643.5, 17.5, 1.35], [644.9, 6.7, 1.35]],
+    "MnO2": [[641.9, 41.7, 0.91], [642.7, 26.5, 0.91], [643.4, 15.5, 0.91], [644.2, 9.1, 0.91], [645.0, 4.9, 0.91], [646.0, 2.5, 0.91]],
+    "K2MnO4": [[643.8, 100.0, 1.40]],
+    "KMnO4": [[645.5, 100.0, 1.08]]
+   }
+  },
+  "fe2p3_biesinger2011": {
+   "level": "Fe 2p",
+   "part": "high_j",
+   "name_en": "Fe 2p3/2 – species envelopes (Biesinger 2011)",
+   "name_zh": "Fe 2p3/2 化学态包络（Biesinger 2011）",
+   "source": "M. C. Biesinger et al., Appl. Surf. Sci. 257 (2011) 2717, Table 4 (monochromatic Al Kα, Kratos Axis Ultra; FWHM at 10 eV pass energy, FeCr2O4 at 20 eV; adventitious C 1s = 284.8 eV). Fe(0) is LA(1.2,4.8,3) in the paper, approximated by GL(30). Fe3O4 = Fe2+ and Fe3+ sets together (100 %). Printed inconsistencies resolved with the splittings (more accurate than BEs, table footnote a): alpha-Fe2O3 peak 4 712.3 (printed 713.3), alpha-FeOOH peak 4 713.3 (printed 711.2), FeCr2O4 peak 4 712.4 (printed 713.0); gamma-Fe2O3 Δ(3-2) printed 13.0 is 1.0.",
+   "shape": "gl",
+   "m": 0.3,
+   "species": {
+    "Fe(0)": [[706.6, 100.0, 0.88]],
+    "FeO": [[708.4, 24.2, 1.4], [709.7, 30.1, 1.6], [710.9, 14.5, 1.6], [712.1, 25.6, 2.9], [715.4, 5.6, 2.5]],
+    "alpha-Fe2O3": [[709.8, 26.1, 1.0], [710.7, 22.0, 1.2], [711.4, 17.4, 1.2], [712.3, 11.1, 1.4], [713.3, 14.8, 2.2], [719.3, 8.6, 2.9]],
+    "gamma-Fe2O3": [[709.8, 27.4, 1.2], [710.8, 27.4, 1.3], [711.8, 20.3, 1.4], [713.0, 9.1, 1.4], [714.1, 5.1, 1.7], [719.3, 10.0, 2.2]],
+    "alpha-FeOOH": [[710.2, 26.7, 1.3], [711.2, 25.3, 1.2], [712.1, 21.0, 1.4], [713.3, 12.1, 1.4], [714.4, 7.2, 1.7], [719.8, 7.7, 3.0]],
+    "gamma-FeOOH": [[710.3, 27.3, 1.4], [711.3, 27.6, 1.4], [712.3, 20.1, 1.4], [713.3, 10.5, 1.4], [714.4, 5.4, 1.8], [719.5, 8.9, 2.8]],
+    "Fe3O4": [[708.4, 16.6, 1.2], [709.2, 14.8, 1.2], [710.2, 23.7, 1.4], [711.2, 17.8, 1.4], [712.3, 12.2, 1.4], [713.4, 5.7, 1.4], [714.5, 9.1, 3.3]],
+    "FeCr2O4": [[709.0, 40.5, 2.0], [710.3, 12.9, 1.5], [711.2, 17.8, 1.5], [712.4, 8.3, 1.5], [713.8, 20.6, 3.6]],
+    "NiFe2O4": [[709.5, 34.1, 2.0], [710.7, 33.2, 2.0], [712.2, 22.3, 2.0], [713.7, 10.4, 2.0]],
+    "FeCO3": [[709.8, 24.3, 1.5], [711.1, 13.2, 1.5], [712.0, 41.9, 3.6], [715.6, 20.0, 3.4], [719.4, 0.70, 1.5]]
+   }
+  },
+  "co2p3_biesinger2011": {
+   "level": "Co 2p",
+   "part": "high_j",
+   "name_en": "Co 2p3/2 – species envelopes (Biesinger 2011)",
+   "name_zh": "Co 2p3/2 化学态包络（Biesinger 2011）",
+   "source": "M. C. Biesinger et al., Appl. Surf. Sci. 257 (2011) 2717, Table 5 (monochromatic Al Kα, Kratos Axis Ultra; FWHM at 20 eV pass energy; adventitious C 1s = 284.8 eV, metals Au 4f7/2 = 83.95 eV). Co(0) peak 1 is LA(1.2,5,5) in the paper; approximated here by GL(30).",
+   "shape": "gl",
+   "m": 0.3,
+   "species": {
+    "Co(0)": [[778.1, 81.0, 0.75], [781.1, 11.0, 3.00], [783.1, 8.0, 3.00]],
+    "CoO": [[780.0, 46.6, 2.24], [782.1, 25.7, 2.66], [785.5, 1.6, 2.29], [786.5, 26.1, 4.98]],
+    "Co(OH)2": [[780.4, 38.1, 2.04], [782.2, 26.6, 2.55], [786.0, 33.0, 4.47], [790.4, 2.4, 2.33]],
+    "CoOOH": [[780.1, 61.4, 1.48], [781.4, 24.5, 1.48], [783.1, 5.2, 1.48], [790.1, 8.9, 3.30]],
+    "Co3O4": [[779.6, 40.5, 1.39], [780.9, 29.1, 1.62], [782.2, 15.2, 2.18], [785.2, 8.1, 4.44], [789.5, 7.2, 3.29]]
+   }
+  },
+  "ni2p3_biesinger2011": {
+   "level": "Ni 2p",
+   "part": "high_j",
+   "name_en": "Ni 2p3/2 – species envelopes (Biesinger 2011)",
+   "name_zh": "Ni 2p3/2 化学态包络（Biesinger 2011）",
+   "source": "M. C. Biesinger et al., Appl. Surf. Sci. 257 (2011) 2717, Table 6 (monochromatic Al Kα, Kratos Axis Ultra; FWHM at 20 eV pass energy; gamma-/beta-NiOOH and NiCr2O4 at 10 eV (20 eV column incomplete or, for NiCr2O4 peak 3, implausible: 7.01 vs 3.91 eV); adventitious C 1s = 284.8 eV, metal Au 4f7/2 = 83.95 eV). Ni(0) = 'new line shape' row, peak 1 LA(1.1,2.2,10) in the paper, approximated by GL(30). beta-NiOOH = Ni3+ and Ni2+ portions together (2:1, 100 %).",
+   "shape": "gl",
+   "m": 0.3,
+   "species": {
+    "Ni(0)": [[852.6, 81.2, 0.95], [856.3, 6.3, 2.70], [858.7, 12.5, 2.70]],
+    "NiO": [[853.7, 14.3, 1.02], [855.4, 44.2, 3.25], [860.9, 34.0, 3.76], [864.0, 3.6, 2.04], [866.3, 3.9, 2.44]],
+    "Ni(OH)2": [[854.9, 7.4, 1.16], [855.7, 45.3, 2.29], [857.7, 3.0, 1.59], [860.5, 1.4, 1.06], [861.5, 39.2, 4.65], [866.5, 3.7, 3.01]],
+    "gamma-NiOOH": [[854.6, 13.8, 1.40], [855.3, 12.4, 6.50], [855.7, 9.7, 1.40], [856.5, 20.7, 1.40], [857.8, 8.7, 1.90], [861.0, 23.3, 4.00], [864.4, 11.4, 4.40]],
+    "beta-NiOOH": [[854.6, 9.2, 1.40], [855.3, 8.3, 5.30], [855.7, 6.4, 1.40], [856.5, 13.8, 1.40], [857.8, 5.8, 1.90], [861.0, 15.6, 4.00], [864.4, 7.6, 4.40], [854.9, 2.5, 1.12], [855.7, 15.1, 1.5], [857.7, 1.0, 1.59], [860.5, 0.5, 1.06], [861.5, 13.1, 4.64], [866.5, 1.2, 3.08]],
+    "NiCr2O4": [[853.8, 7.0, 1.22], [855.8, 20.5, 1.82], [856.5, 24.7, 3.91], [861.0, 2.3, 1.27], [861.3, 39.4, 4.34], [866.0, 6.1, 2.07]],
+    "NiFe2O4": [[854.5, 17.3, 1.36], [856.0, 38.2, 2.98], [861.4, 38.5, 4.50], [864.7, 2.8, 3.01], [867.0, 3.2, 2.66]]
+   }
+  }
+ }
+}

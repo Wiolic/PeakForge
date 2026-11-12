@@ -175,7 +175,7 @@ def save_panel_figure(path: str, panels: list[dict], ncols: int = 2, panel_size=
 
 def save_fit_figure(path: str, model: RegionModel, res: FitResult, th_name: str | None = None,
                     sample: str = "", region: str = "", dpi: int = 300, size=(5.0, 4.0),
-                    residual: bool = False):
+                    residual: bool = False, transparent: bool = False):
     if residual:
         fig = _figure(figsize=(size[0], size[1] * 1.2))
         axr, ax = fig.subplots(2, 1, sharex=True, gridspec_kw=dict(height_ratios=[1, 5]))
@@ -184,7 +184,7 @@ def save_fit_figure(path: str, model: RegionModel, res: FitResult, th_name: str 
         ax = fig.subplots()
         axr = None
     draw_fit(ax, model, res, th_name, sample, region, residual_ax=axr)
-    fig.savefig(path, dpi=dpi, facecolor="white")
+    fig.savefig(path, dpi=dpi, facecolor="none" if transparent else "white", transparent=transparent)
     return path
 
 

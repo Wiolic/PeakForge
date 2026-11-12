@@ -38,10 +38,7 @@ class PalettePicker(QComboBox):
             head.setForeground(QColor("#6B7280"))
             model.appendRow(head)
             for tid in ids:
-                th = T.THEMES[tid]
-                kind = T.KINDS.get(th.get("kind", "poly"), ("", ""))[0 if zh else 1]
-                name = f"{th['name_zh']}  {th['name_en']}" if zh else f"{th['name_en']}  {th['name_zh']}"
-                self.addItem(swatch(th["components"][:6] + [th["envelope"]]), f"{name}   · {kind}", tid)
+                self.addItem(swatch(T.preview_colors(tid)), T.display_name(tid, "zh" if zh else "en"), tid)
         self.insertSeparator(self.count())
         self.addItem(tr("palette_new"), _CUSTOM)
         i = self.findData(T.theme_id(select))
@@ -135,3 +132,69 @@ class PaletteEditor(QDialog):
                     components=[b.rgb for b in self.comps], fill_alpha=self.alpha.value())
         tid = self.name_en.text().strip().lower().replace(" ", "_") or "custom"
         return T.save_user_theme(tid, self.name_zh.text().strip(), self.name_en.text().strip(), spec)
+
+
+class FigureColorDialog(QDialog):
+    """Base colour (swatch grid) and component colour mode of ONE figure, with a live preview."""
+
+    def __init__(self, project, key: str, n: int, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(tr("figure_colors"))
+        pal = project.palette()
+        fig = (pal.get("figures") or {}).get(key, {})
+        s = project.spectra[key]
+        regs = [x.region for x in project.spectra.values() if not x.is_survey]
+        self._auto = T.resolve_base(pal, s.region, regs)
+        self.base: str | None = fig.get("base") if fig.get("base") in T.BASE_COLORS else None
+        self._n = max(2, n)
+        zh = lang() == "zh"
+        lay = QVBoxLayout(self)
+        lay.addWidget(QLabel(f"{project.sample_label(s.sample)} · {s.region}"))
+        lay.addWidget(QLabel(tr("color_base")))
+        grid = QGridLayout()
+        self._btns: dict[str | None, QPushButton] = {}
+        nm = "name_zh" if zh else "name_en"
+        items = [(None, tr("color_auto") + f" ({T.BASE_COLORS[self._auto][nm]})", T.BASE_COLORS[self._auto]["hex"])]
+        items += [(b, v[nm], v["hex"]) for b, v in T.BASE_COLORS.items()]
+        for i, (b, name, hx) in enumerate(items):
+            btn = QPushButton("A" if b is None else "")
+            btn.setCheckable(True)
+            btn.setFixedSize(54, 28)
+            btn.setToolTip(name)
+            btn.setStyleSheet(f"QPushButton{{background:{hx};border:1px solid #D3D6DD;border-radius:6px;color:white;}}"
+                              "QPushButton:checked{border:3px solid #111827;}")
+            btn.clicked.connect(lambda _=False, bb=b: self._pick(bb))
+            self._btns[b] = btn
+            grid.addWidget(btn, i // 7, i % 7)
+        lay.addLayout(grid)
+        lay.addWidget(QLabel(tr("color_mode")))
+        self.mode = QComboBox()
+        self.mode.addItem(tr("mode_series"), "series")
+        self.mode.addItem(tr("mode_gradient"), "gradient")
+        self.mode.setCurrentIndex(1 if (fig.get("mode") or pal.get("mode")) == "gradient" else 0)
+        self.mode.currentIndexChanged.connect(self._update)
+        lay.addWidget(self.mode)
+        lay.addWidget(QLabel(tr("color_preview")))
+        self.preview = QLabel()
+        lay.addWidget(self.preview)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        rst = bb.addButton(tr("color_reset"), QDialogButtonBox.ButtonRole.ResetRole)
+        rst.clicked.connect(lambda: (self._pick(None), self.mode.setCurrentIndex(0)))
+        bb.accepted.connect(self.accept)
+        bb.rejected.connect(self.reject)
+        lay.addWidget(bb)
+        self._pick(self.base)
+
+    def _pick(self, base):
+        self.base = base
+        for b, btn in self._btns.items():
+            btn.setChecked(b == base)
+        self._update()
+
+    def _update(self):
+        cols = T.series(self.base or self._auto, self._n, self.mode.currentData())
+        self.preview.setPixmap(swatch(cols, 300, 22).pixmap(600, 44))
+
+    def values(self) -> dict:
+        mode = self.mode.currentData()
+        return dict(base=self.base, mode=None if mode == "series" else mode)

@@ -9,6 +9,8 @@ import sys
 def server_command() -> list[str]:
     """Absolute command so agents find PeakForge even when it is not on PATH (installer venv)."""
     here = os.path.dirname(sys.executable)
+    if getattr(sys, "frozen", False):               # packaged app: the console executable next to PeakForge.exe
+        return [os.path.join(here, "peakforge-cli.exe"), "mcp"]
     for cand in (os.path.join(here, "peakforge.exe"), os.path.join(here, "Scripts", "peakforge.exe")):
         if os.path.exists(cand):
             return [cand, "mcp"]

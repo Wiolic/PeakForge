@@ -1920,6 +1920,21 @@
    ],
    "main": false
   },
+  "Ta 5p": {
+   "z": 73,
+   "element": "Ta",
+   "level": "5p",
+   "be": 32.7,
+   "rsf": null,
+   "split": 9.5,
+   "ratio": 0.5,
+   "sub": [
+    "5p3/2",
+    "5p1/2"
+   ],
+   "main": false,
+   "source": "Ta metal 5p3/2 32.7 eV (NIST SRD 20 rec. 31954; X-ray Data Booklet Table 1-1); 5p1/2 42.2 eV (X-ray Data Booklet) -> split 9.5; Ta2O5 5p3/2 37.3 eV (NIST rec. 31946)"
+  },
   "W 4f": {
    "z": 74,
    "element": "W",
@@ -2031,6 +2046,21 @@
     "4d3/2"
    ],
    "main": false
+  },
+  "Ir 5p": {
+   "z": 77,
+   "element": "Ir",
+   "level": "5p",
+   "be": 48.1,
+   "rsf": null,
+   "split": 15.0,
+   "ratio": 0.5,
+   "sub": [
+    "5p3/2",
+    "5p1/2"
+   ],
+   "main": false,
+   "source": "Freakley et al., Surf. Interface Anal. 49 (2017) 794, Table 2: Ir metal 5p3/2 48.1 eV, 5p1/2 +15.0 eV, area 2:1; IrO2 49.7-50.2 eV"
   },
   "Pt 4f": {
    "z": 78,

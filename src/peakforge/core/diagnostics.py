@@ -88,19 +88,16 @@ def diagnose(model: RegionModel, prep: Prepared, res: FitResult, deep: bool = Fa
              progress: Callable[[float, str], None] | None = None, check: Callable[[], None] | None = None) -> dict:
     d = dict(rms_pct=res.rms_pct, chi2_red=res.chi2_red, bic=res.bic, bound_hits=res.bound_hits,
              correlations=correlations(res))
-    warnings = []
-    if res.bound_hits:
-        warnings.append("Parameters at bounds: " + ", ".join(res.bound_hits))
+    # the per-fit quality flags (core.quality) first: bounds, width floor, significance, S/N, noise ratio
+    d["flags"] = list(res.flags)
+    warnings = [("ERROR: " if f["level"] == "error" else "") + f["text"] for f in res.flags]
     if d["correlations"]:
         warnings.append("Highly correlated parameters: " +
                         ", ".join(f"{c['a']}~{c['b']} ({c['r']:+.2f})" for c in d["correlations"][:5]))
-    if res.noise == "counting" and np.isfinite(res.noise_ratio) and not 0.5 < res.noise_ratio < 2.0:
-        msg = (f"Data noise is {res.noise_ratio:.1f}× the counting-statistics variance expected from "
-               "the file's acquisition time — χ²ᵣ and Poisson weights are unreliable (check dwell/sweeps)")
-        if res.noise_ratio > 2.0 and res.chi2_red > 2.0:
-            msg += ("; with χ²ᵣ ≫ 1 this can also be line-shape misfit that varies from point to point "
-                    "(coarse energy step)")
-        warnings.append(msg)
+    if (res.noise == "counting" and np.isfinite(res.noise_ratio) and res.noise_ratio > 2.0
+            and res.chi2_red > 2.0):
+        warnings.append("Noise ratio > 2 with χ²ᵣ ≫ 1 can also be line-shape misfit that varies from point "
+                        "to point (coarse energy step)")
     if res.noise == "estimated":
         d["chi2_note"] = "χ²ᵣ uses a noise level estimated from the data (±~15 %)"
     if res.rms_pct > 3:

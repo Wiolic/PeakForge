@@ -20,6 +20,7 @@ from .canvas import SpectrumView
 from .dialogs import AgentDialog
 from .i18n import tr
 from .model_panel import ModelPanel
+from ..export import themes as T
 from .palette import PalettePicker
 from .style import C, icon
 from .window.charge_quant import ChargeQuantMixin
@@ -145,6 +146,8 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         self.view.edited.connect(self._canvas_edited)
         self.view.add_peak.connect(self._add_peak_at)
         self.view.remove_comp.connect(self._remove_comp)
+        self.view.export_this.connect(self.export_current)
+        self.view.color_this.connect(self.choose_figure_colors)
         self.view.status.connect(lambda s: self.statusBar().showMessage(s, 3000))
         vsplit.addWidget(plot_card)
 
@@ -233,6 +236,7 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         m = mb.addMenu(tr("menu_analysis"))
         self._act(m, tr("auto_charge"), self.auto_charge)
         self._act(m, tr("set_shift"), self.set_shift)
+        self._act(m, tr("charge_reference"), self.set_charge_reference)
         m.addSeparator()
         self._act(m, tr("fit"), lambda: self.fit_current(self.panel.starts.value()), "F5")
         self._act(m, tr("fit_all"), self.fit_all, "Shift+F5")
@@ -246,8 +250,13 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
 
         m = mb.addMenu(tr("menu_export"))
         self._act(m, tr("export_all"), self.export, "Ctrl+E")
+        self._act(m, tr("export_current"), self.export_current, "Ctrl+Shift+E")
 
         m = mb.addMenu(tr("menu_view"))
+        mp = m.addMenu(tr("view_palette"))
+        for tid in T.COMBOS:
+            self._act(mp, T.display_name(tid, i18n.lang()), lambda _=False, t=tid: self.apply_palette(t))
+        self._act(m, tr("color_this"), self.choose_figure_colors)
         ml = m.addMenu(tr("language"))
         g = QActionGroup(self)
         for code, name in (("zh", "中文"), ("en", "English")):
@@ -263,6 +272,7 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         self._act(m, tr("validate"), self.validate_project)
         self._act(m, tr("diag_zip"), self.export_diagnostics)
         self._act(m, tr("open_log"), self.open_log_folder)
+        self._act(m, tr("check_update"), self.check_updates)
         self._act(m, tr("about"), self.about)
 
     def _fill_recent(self):
@@ -315,12 +325,33 @@ class MainWindow(ProjectMixin, TreeMixin, EditMixin, JobsMixin, ChargeQuantMixin
         super().closeEvent(ev)
 
     def set_theme(self, k):
-        self.view.theme = k
+        """A combo (or user palette) chosen: applies to ALL figures (per-figure choices are dropped)."""
         if self.project:
             self._mark_write()
-            self.project.settings["theme"] = k
-            self.project.save()
-        self.view.redraw()
+            self.project.set_palette(k, reset=True)
+        self.palette.set_theme(k)
+        self._refresh_view()
+
+    apply_palette = set_theme
+
+    def _refresh_view(self):
+        if self.project and self.key is not None:
+            self._show(keep_view=True)
+        else:
+            self.view.redraw()
+
+    def choose_figure_colors(self):
+        """Base colour / gradient mode of the figure shown (right click on the plot or View menu)."""
+        if self.project is None or self.key is None:
+            return
+        from .palette import FigureColorDialog
+        key = self.key
+        dlg = FigureColorDialog(self.project, key, len(self.model.components) if self.model else 8, self)
+        if dlg.exec():
+            v = dlg.values()
+            self._mark_write()
+            self.project.set_figure_color(key, v["base"], v["mode"])
+            self._refresh_view()
 
     def switch_lang(self, code):
         if code == i18n.lang():

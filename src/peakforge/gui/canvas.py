@@ -25,6 +25,8 @@ class SpectrumView(QWidget):
     edited = Signal()                 # model changed by mouse (after release)
     add_peak = Signal(float)          # BE
     remove_comp = Signal(str)
+    color_this = Signal()             # context menu: choose the colours of this figure
+    export_this = Signal()            # context menu: export this figure
     status = Signal(str)
 
     def __init__(self, parent=None):
@@ -273,4 +275,7 @@ class SpectrumView(QWidget):
             if name:
                 menu.addSeparator()
                 menu.addAction(tr("remove_comp", n=self.model.comp(name).label), lambda: self.remove_comp.emit(name))
+        menu.addSeparator()
+        menu.addAction(tr("color_this"), self.color_this.emit)
+        menu.addAction(tr("export_this"), self.export_this.emit)
         menu.exec(QCursor.pos())

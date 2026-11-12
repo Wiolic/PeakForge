@@ -15,7 +15,7 @@ from ...core.fit import fit as run_fit
 from ...logs import log
 from ...project import build_model, prepare_for
 from ..dialogs import BatchDialog, ExportDialog
-from ..i18n import tr
+from ..i18n import flag_text, tr
 from ..tasks import run_task
 
 
@@ -155,7 +155,10 @@ class JobsMixin:
                 return
             lines = [f"{tr('rms')}: {d['rms_pct']:.2f} %    χ²ᵣ = {d['chi2_red']:.2f}    BIC = {d['bic']:.1f}", ""]
             if d["warnings"]:
-                lines += [tr("warnings") + ":"] + ["  ⚠ " + w for w in d["warnings"]] + [""]
+                fl = d.get("flags") or []          # the first len(flags) warnings are the quality flags
+                lines += ([tr("warnings") + ":"] +
+                          [("  ✖ " if f["level"] == "error" else "  ⚠ ") + flag_text(f) for f in fl] +
+                          ["  ⚠ " + w for w in d["warnings"][len(fl):]] + [""])
             lines.append("ΔBIC (remove component → refit):")
             for s in d.get("significance", []):
                 lines.append(f"  {s['label']:<22} ΔBIC {s['d_bic']:+8.1f}   ΔRMS {s['d_rms']:+.2f} %   {s['verdict']}")
@@ -242,3 +245,37 @@ class JobsMixin:
             os.startfile(r["out_dir"]) if hasattr(os, "startfile") else None
         run_task(self, job, done, busy_text=tr("export_all").rstrip("….") + "…", button_=self.tool.get("export"),
                  progress=True)
+
+    def export_current(self):
+        """Export the spectrum shown in the main view as ONE figure (format from the file extension)."""
+        if self.project is None or self.key is None:
+            return
+        from PySide6.QtWidgets import QFileDialog
+        from ...export.exporter import collect_export_one, run_export_one
+        proj, key = self.project, self.key
+        if proj.result(key) is None:
+            self.fail(tr("no_fit_to_export"))
+            return
+        default = os.path.join(proj.out_dir("export"), key.replace("/", "_").replace(" ", "") + ".png")
+        path, flt = QFileDialog.getSaveFileName(self, tr("export_current").rstrip("…."), default,
+                                                tr("export_one_filter"))
+        if not path:
+            return
+        if not os.path.splitext(path)[1]:
+            path += "." + (flt.split("*.")[-1].rstrip(")") if "*." in flt else "png")
+        try:
+            job_in = collect_export_one(proj, key, path)     # project palette = colours on screen
+        except Exception as e:     # noqa: BLE001 — shown to the user
+            log.warning("export_current: collecting failed", exc_info=True)
+            self.fail(str(e))
+            return
+
+        def job(task):
+            return run_export_one(job_in, task.progress)
+
+        def done(r):
+            self.say(f"export → {r['path']}")
+            o = r.get("origin")
+            if o and o["mode"] != "originpro":
+                self.say(tr("origin_missing") + " " + o["hint"])
+        run_task(self, job, done, busy_text=tr("export_current").rstrip("….") + "…", progress=True)

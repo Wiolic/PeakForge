@@ -116,17 +116,22 @@ def validate(project: str | None = None) -> dict:
 
 @mcp.tool()
 def charge_correct(project: str | None = None, sample: str | None = None, ref: float | None = None,
-                   shift: float | None = None) -> dict:
+                   shift: float | None = None, region: str | None = None, force: bool = False) -> dict:
     """Charge correction. With `shift` (eV, added to BE) set it manually for `sample`; otherwise
-    auto-reference the C 1s C–C peak to `ref` (default project setting, 284.8 eV)."""
+    auto-reference the lowest-BE prominent peak of `region` (default project setting: C 1s C–C) to `ref`
+    (default 284.8 eV). Low-confidence results (large shift, weak/broad peak, low-BE shoulder) are NOT
+    applied but returned under 'failed' with the proposed shift; force=True applies them. 'warnings' lists
+    failed internal-consistency checks (project setting charge_checks)."""
     p = _p(project)
     if shift is not None:
         if not sample:
             raise ValueError("sample is required with shift")
         p.set_shift(sample, shift)
         return {sample: shift}
-    out = p.auto_charge(sample, ref)
-    return dict(shifts=out, failed=p.charge_failures) if p.charge_failures else out
+    out = p.auto_charge(sample, ref, force=force, region=region)
+    if p.charge_failures or p.charge_warnings:
+        return dict(shifts=out, failed=p.charge_failures, warnings=p.charge_warnings)
+    return out
 
 
 @mcp.tool()
@@ -246,11 +251,41 @@ def quantify(project: str | None = None) -> list[dict]:
 def export(formats: list[str] | None = None, theme: str | None = None, keys: list[str] | None = None,
            project: str | None = None) -> dict:
     """Export figures (png/tiff/svg/pdf), Excel (xlsx) and Origin (.opju via Origin, else a script)
-    to <project>/output/export. Themes (landscape names, 6 families x 4): glacier (default), fjord, lagoon, abyss, moss, pinewood, bamboo, rainforest, desert, canyon, loess, badlands, dawn, dusk, aurora, twilight, basalt, granite, slate, highland, lavender, meadow, autumn, prairie; custom ones are "user:<id>"."""
+    to <project>/output/export. Colours: by default the project palette (see set_palette: a combo + one base colour per element, per-figure overrides). `theme` = a combo id (glacier, fjord, rainforest, desert, canyon, dusk, aurora, meadow, or "user:<id>") overrides the palette for this export."""
     from .export.exporter import export_all
     p = _p(project)
     return _jsonable(export_all(p, keys and [ops.resolve_key(p, k) for k in keys], theme=theme,
                                 formats=tuple(formats or ("png", "xlsx", "origin"))))
+
+
+@mcp.tool()
+def set_palette(combo: str | None = None, key: str | None = None, base: str | None = None, mode: str | None = None,
+                reset: bool = False, project: str | None = None) -> dict:
+    """Figure colours. combo = colour set for the whole project (glacier, fjord, rainforest, desert, canyon, dusk,
+    aurora, meadow, user:<id>); reset=True drops all per-figure choices. With key: base colour for that figure
+    (crimson coral amber gold olive lime leaf jade teal lagoon sky azure cobalt indigo violet orchid magenta rose
+    graphite slate) and mode 'series' (default) or 'gradient'; key with no base/mode removes the override."""
+    p = _p(project)
+    if key:
+        from .export.themes import BASE_COLORS, MODES
+        if base and base not in BASE_COLORS or mode and mode not in MODES:
+            raise ValueError(f"unknown base colour or mode (bases: {', '.join(BASE_COLORS)}; modes: {', '.join(MODES)})")
+        p.set_figure_color(ops.resolve_key(p, key), base, mode)
+    if combo is not None or reset:
+        p.set_palette(combo, reset)
+    return _jsonable(p.palette())
+
+
+@mcp.tool()
+def export_figure(key: str, path: str | None = None, theme: str | None = None, dpi: int = 300,
+                  transparent: bool = False, project: str | None = None) -> dict:
+    """Export ONE fit figure. Format from the extension of `path`: .png .svg .pdf .tif, or .opju (Origin; without
+    Origin: data + build script). Default: <project>/output/export/<key>.png."""
+    from .export.exporter import export_one
+    p = _p(project)
+    k = ops.resolve_key(p, key)
+    path = path or os.path.join(p.out_dir("export"), k.replace("/", "_").replace(" ", "") + ".png")
+    return _jsonable(export_one(p, k, path, theme=theme, dpi=dpi, transparent=transparent))
 
 
 @mcp.tool()
@@ -264,7 +299,8 @@ def render(key: str, project: str | None = None, theme: str | None = None) -> di
         raise ValueError("no model")
     s = p.spectra[k]
     path = os.path.join(p.out_dir("agent"), k.replace("/", "_").replace(" ", "") + ".png")
-    save_fit_figure(path, m, p.result(k), theme, p.sample_label(s.sample), s.region, dpi=150, residual=True)
+    save_fit_figure(path, m, p.result(k), theme or p.figure_theme(k, len(m.components)), p.sample_label(s.sample),
+                    s.region, dpi=150, residual=True)
     return dict(png=path)
 
 

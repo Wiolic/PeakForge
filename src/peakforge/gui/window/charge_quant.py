@@ -3,9 +3,9 @@ from __future__ import annotations
 
 
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtWidgets import (QInputDialog, QTableWidgetItem)
+from PySide6.QtWidgets import QInputDialog, QMessageBox, QTableWidgetItem
 
-from ..i18n import tr
+from ..i18n import tr, tr_msg
 
 
 class ChargeQuantMixin:
@@ -14,11 +14,40 @@ class ChargeQuantMixin:
             return
         self._mark_write()
         out = self.project.auto_charge()
-        self.say("C 1s → " + str(self.project.settings.get("charge_ref", 284.8)) + " eV: " +
+        st = self.project.settings
+        self.say(f"{st.get('charge_region') or 'C 1s'} → {st.get('charge_ref', 284.8)} eV: " +
                  ", ".join(f"{k} {v:+.2f}" for k, v in out.items()))
-        for smp, why in self.project.charge_failures.items():
-            self.say(f"{tr('charge_failed')} {smp}: {why}")
+        msgs = [f"{tr('charge_failed')} {self.project.sample_label(smp)}: {tr_msg(why)}"
+                for smp, why in self.project.charge_failures.items()]
+        msgs += [f"{tr('charge_check_failed')} {self.project.sample_label(smp)}: {tr_msg(w)}"
+                 for smp, ws in self.project.charge_warnings.items() for w in ws]
+        for m in msgs:
+            self.say(m)
+        if msgs:
+            QMessageBox.warning(self, tr("auto_charge"), "\n\n".join(msgs))
         self.refresh_tree()
+
+    def set_charge_reference(self):
+        """Project-wide reference line and energy for auto charge correction."""
+        if self.project is None:
+            return
+        st = self.project.settings
+        regions = sorted({s.region for s in self.project.spectra.values() if not s.is_survey}) or ["C 1s"]
+        cur = st.get("charge_region") or "C 1s"
+        if cur not in regions:
+            regions.insert(0, cur)
+        reg, ok = QInputDialog.getItem(self, tr("charge_reference"), tr("charge_ref_region"), regions,
+                                       regions.index(cur), True)
+        if not ok or not reg.strip():
+            return
+        default = st.get("charge_ref", 284.8) if reg == cur else (284.8 if reg == "C 1s" else 0.0)
+        be, ok = QInputDialog.getDouble(self, tr("charge_reference"), tr("charge_ref_be"), default, 0, 2000, 2)
+        if not ok:
+            return
+        self._mark_write()
+        st["charge_region"], st["charge_ref"] = reg.strip(), float(be)
+        self.project.save()
+        self.say(f"{tr('charge_reference')} {reg.strip()} → {be:.2f} eV")
 
     def set_shift(self, sample: str | None = None):
         if self.project is None:

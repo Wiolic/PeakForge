@@ -30,8 +30,13 @@ class ExportDialog(QDialog):
         f.addRow(tr("formats"), row)
         from .palette import PalettePicker
         self.theme = PalettePicker()
-        self.theme.set_theme(project.settings.get("theme"))
-        f.addRow(tr("theme"), self.theme)
+        self.theme.set_theme(project.palette().get("combo"))
+        self.use_project = QCheckBox(tr("export_project_colors"))
+        self.use_project.setChecked(True)
+        self.theme.setEnabled(False)
+        self.use_project.toggled.connect(lambda on: self.theme.setEnabled(not on))
+        f.addRow(tr("theme"), self.use_project)
+        f.addRow("", self.theme)
         self.dpi = QSpinBox(); self.dpi.setRange(72, 1200); self.dpi.setValue(300)
         f.addRow("DPI", self.dpi)
         drow = QHBoxLayout()
@@ -51,7 +56,7 @@ class ExportDialog(QDialog):
 
     def values(self):
         return dict(formats=tuple(k for k, c in self.checks.items() if c.isChecked()),
-                    theme=self.theme.currentData(), out_dir=self.out.text(), dpi=self.dpi.value())
+                    theme=None if self.use_project.isChecked() else self.theme.currentData(), out_dir=self.out.text(), dpi=self.dpi.value())
 
 
 class BatchDialog(QDialog):

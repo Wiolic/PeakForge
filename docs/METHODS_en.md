@@ -76,6 +76,7 @@ limits the background stays at the end values.
 |---|---|---|
 | VAMAS (ISO 14976) | dwell × number of scans; ordinate divided by t unless its unit is c/s | standard |
 | PHI .spe | dwell (**not** dwell × sweeps) | on PHI Genesis data the point-to-point variance of the stored cps equals that expected for cps·dwell: variance ratio 0.65–1.52 (mean ≈1.0) over 10 narrow regions of two samples (C 1s, O 1s, K 2p, Ir 4f with 3 sweeps, Ta 4f with 5) and 0.82–1.04 for three surveys, with the 4th-difference estimator below (re-checked in phase 1); it would be 2–5 for cps·dwell·sweeps |
+| Thermo Avantage .VGD (.vgp experiment) | DwellTime × Scans; the stored values are counts summed over scans, cps = counts / t | Avantage's displayed counts/s equals VGData / (DwellTime·Scans) (checked against the axis maximum stored with the chart); post-fit variance ratio 0.52–1.11 on 6 K-Alpha regions (5 scans) and 1.0–2.1 on 7 PHI regions re-saved by Avantage. Ratios ≈ 0.5 (Co 2p) suggest Avantage's transmission/detector corrections (stored flags Acq_TXFN_Correction, SignatureCorrected) scale the counts — noise-based errors are then slightly conservative. BE = SourceEnergy − KE. |
 | CSV / Excel, automatic | unknown → estimated from the data | — |
 | CSV / Excel with a column template, `intensity: cps` | `acq_time` if given, else estimated | user declaration |
 | CSV / Excel with a column template, `intensity: counts` | `acq_time` t if given (cps = counts / t), else t = 1 s (cps = counts, so N is exact) | user declaration **[test]** |
@@ -137,13 +138,81 @@ adequate for the question asked.
   fraction spread > 3 % is reported.
 - Parameters correlated with |r| > 0.95 are reported.
 
-## 7. Charge correction (`quant.find_c1s_reference`)
-Shirley background, then a single GL(30) fitted to the low-BE side and top of the strongest peak inside
-283–287 eV (uncorrected BE); the shift moves it to the reference (default 284.8 eV, project setting).
-The search **refuses** (shift left unchanged, sample reported) when the maximum lies within 0.3 eV of the
-window edge, there is no clear peak, or the fit wanders > 0.95 eV **[test]**. Adventitious-carbon
-referencing is itself uncertain by several tenths of an eV and can fail on some samples (Greczynski &
-Hultman 2020); use an internal reference where possible.
+## 6b. Fit-quality flags and data-driven model limits (`quality.py`, `presets.py`)
+Computed after **every** fit (no refits), for any element; shown in the GUI (red = error) and stored with
+the result (`flags`). **[test]**
+- **Width floor** = max(0.5 eV, 2.5 × energy step). 0.5 eV: the narrowest laboratory instrumental width,
+  Ag 3d5/2 FWHM 0.47 eV at 10 eV pass energy with monochromatic Al Kα (Biesinger et al. 2011, section 2);
+  2.5 points: a narrower component is not resolved by the sampling. Auto models and every preset applied to a
+  spectrum use it as the FWHM minimum; a free FWHM ending on it is an **error** ("fitting noise").
+- **S/N** = height above background / point noise (counting noise when the acquisition time is known).
+  Below 30: **warning** — on real Co 2p spectra with S/N 14–30 six free components gave χ²ᵣ 0.9–1.2 with a
+  residual of 15–31 % of the peak height, i.e. χ²ᵣ ≈ 1 does not validate a model at this noise level.
+  The auto model then places at most 2 components (3 for multiplet levels) sharing one FWHM.
+- **Noise-dominated**: χ²ᵣ < 2 with residual RMS > 10 % of the peak height → **error** (positions and
+  fractions are not determined).
+- Component **not significant** (area < 2σ or 0) → warning; **outside** the fitted window → error;
+  **broad** (> 2.5 eV, ≥ 2.5× the narrowest component, > 30 % of the area) → warning (background, loss
+  feature or the tail of an asymmetric line); parameters at bounds (any bound, including a width minimum above the resolution floor; not repeated when a 'narrow' or 'not significant' flag already explains it) and a noise ratio outside 0.5–2 → warning.
+- **Window, not label**: a region named after one j sub-level ('Co 2p3/2') whose window contains the
+  spin–orbit partner of its strongest feature (with 1.5 eV to spare) is modelled as the full level; a true
+  single-sub-level scan uses RSF × 1/(1+r) (high j) or r/(1+r) (low j), r = tabulated area ratio.
+- Presets applied to a spectrum: components whose start position lies outside the scanned window are
+  removed (and named in the model note); free centres are kept 0.1 eV inside the window.
+- **Overlapping lines** (warning): every level in the bundled orbital table of an element measured in the
+  same sample (including the region's own element) whose line or spin–orbit partner, shifted by 0–4 eV
+  (table values are mostly elemental; compounds lie higher), falls in the fit window — e.g. Co 3p and Ir 5p
+  under Ir 4f, Ir 4d and K 2p in a C 1s window, O 2s, F 2s and Ta 5p near Ta 4f. Added with sources: Ta 5p
+  (5p3/2 32.7 eV metal, 37.3 eV Ta₂O₅, NIST SRD 20; 5p1/2 42.2 eV, X-ray Data Booklet) and Ir 5p (5p3/2
+  48.1 eV metal, +15.0 eV to 5p1/2, area 2 : 1; Freakley et al. 2017, Table 2).
+Thresholds 30, 10 %, 2.5 eV and the 4 eV shift allowance are heuristics, not literature values.
+
+## 6c. Multiplet species envelopes (`data/multiplets.json`, `presets.multiplet_preset`)
+Sourced tables of multiplet / satellite structure per chemical species become presets for any element (data
+only; no element-specific code). Each species is one group: the first peak has a free position (table
+± 0.4 eV) and a free area, the others follow at the tabulated offsets and area ratios; widths keep the
+tabulated ratios and scale by one free factor (0.8–1.4) per species for another instrument's resolution.
+Shape GL(30) as in the source. Presets are offered per species and for all species; **none is applied
+automatically**. Included (Biesinger et al. 2011, all 2p3/2, each value checked against the journal PDF;
+details, pass energies and the three corrected misprints in docs/dev/C0_literature_values.md, sections F3, I):
+Cr — metal, Cr₂O₃, Cr(OH)₃, FeCr₂O₄, NiCr₂O₄, Cr(VI), CrO₃ (Table 1); Mn — metal, MnO, Mn₂O₃, MnOOH, MnO₂,
+K₂MnO₄, KMnO₄ (Table 3; pyrolusite omitted, its printed areas sum to 80 %); Fe — metal, FeO, α/γ-Fe₂O₃,
+α/γ-FeOOH, Fe₃O₄, FeCr₂O₄, NiFe₂O₄, FeCO₃ (Table 4); Co — metal, CoO, Co(OH)₂, CoOOH, Co₃O₄ (Table 5); Ni —
+metal, NiO, Ni(OH)₂, γ/β-NiOOH, NiCr₂O₄, NiFe₂O₄ (Table 6). Metallic main lines are LA(…) in the paper; the
+mapping of CasaXPS LA parameters to widths is not published, so they are approximated by GL(30). The source fits 2p3/2 only: the window ends 1.5 eV below the 2p1/2 line of
+the lowest-BE species, and quantification uses RSF × 1/(1+r) for such a model.
+**Limitations, measured on synthetic mixtures built from the table [test]:** (1) all five species at once
+are not identifiable — every peak's area is < 2σ (flagged); combine only species supported by other
+evidence. (2) The area split depends strongly on the high-BE background end point, which lies on satellite
+/ 2p1/2 intensity: 2/3 Co₃O₄ + 1/3 Co(OH)₂ comes out as 0.72 : 0.28 with a linear background, but as
+0.90 : 0.10 with Shirley. Biesinger et al. offset this end point by hand; report the background used.
+
+## 7. Charge correction (`quant.find_reference`, `Project.auto_charge`)
+Reference line = project setting `charge_region` (default C 1s) moved to `charge_ref` (default 284.8 eV). When another region is chosen for one run (CLI `--region`, MCP `region`), `charge_ref` belongs to a different line and is not reused: C 1s uses 284.8 eV, any other region needs an explicit energy.
+**Which peak:** the *lowest-BE* prominent maximum (smoothed with a 0.6 eV Savitzky–Golay filter;
+prominence ≥ 5σ of the point noise and ≥ 10 % of the most prominent peak) inside ref − 6 … ref + 6 eV
+(uncorrected). In a C 1s window C–C/C–H is the lowest-BE carbon species; C–O, C=O, CF₂ and the K 2p and
+Ir 4d lines that often share the window lie above it and may be stronger. The same rule picks Au 4f7/2,
+a metal 4f7/2 or lattice O 1s when those are chosen as reference. **Position:** GL(30) + linear background
+fitted locally (c − 2 … c + 1 eV), so lines elsewhere in the window do not bias it (the earlier
+window-wide Shirley + global maximum in 283–287 eV failed on 7 of 17 PHI C 1s spectra, whose raw C–C lies at
+282.8–284.5 eV because the neutraliser over-compensates, and gave a position 1–2 eV off in 4 more, pulled by CF₂, Ir 4d or the window-wide background).
+**Confidence:** the shift is applied automatically only when none of these hold — shift outside −3 … +4 eV
+(possible without a neutraliser, but then a different line is equally likely), S/N < 8, GL width
+parameter > 2.8 eV, fit moved > 0.6 eV from the maximum, or a separate curvature minimum (2nd derivative,
+1.2 eV smoothing, > 4σ) 0.5–2 eV below the maximum (an unresolved low-BE component: the reference species
+may be the shoulder). Otherwise the sample keeps its shift and is listed with the proposed value and the
+reasons; `force` applies it. **[test]** **Consistency checks (optional):** `charge_checks =
+[{region, be, tol}]` — after correction the lowest-BE peak of that region (±2 eV) must lie within tol
+(default 0.3 eV) of `be`, otherwise a warning (e.g. lattice O 1s of a known oxide). **Fluoropolymer warning:**
+a peak 6.5–7.5 eV above C–C (≥ 15 % of its prominence) — measured 6.7–7.4 eV for the CF₂ line of Nafion-containing
+samples on PHI data, while K 2p3/2 of KOH residue appeared at +7.6–7.8 eV — or an F 1s peak (±6 eV around 688 eV,
+S/N ≥ 10) in an F 1s or survey spectrum of the same sample adds a warning (shift still applied): an insulating
+fluoropolymer (membrane, binder) can charge differently from the active material, and Nafion itself has no
+C–C/C–H, so the C–C reference may describe only part of the sample. **[test]** Adventitious-carbon
+referencing is itself uncertain by several tenths of an eV and depends on the work function on conducting
+samples (Greczynski & Hultman 2020, Prog. Mater. Sci. 107, 100591); carbon paper (sp², ≈ 284.4 eV) differs
+from adventitious carbon. Use an internal reference where possible.
 
 ## 8. Quantification (`quant.py`)
 at%ᵢ = (Aᵢ/RSFᵢ) / Σⱼ(Aⱼ/RSFⱼ), A = total fitted area (or background-subtracted integral). Built-in RSFs are
@@ -151,6 +220,7 @@ approximate Scofield (1976) cross sections for Al Kα normalised to C 1s = 1, **
 transmission, IMFP or angular-asymmetry corrections: absolute at% can be off by tens of percent. Enter the
 RSFs of your instrument (they include those factors) for quantitative work. This note is printed in the
 GUI and in the Excel export.
+A region that holds only one j sub-level uses the scaled RSF of §6b.
 
 ## 9. Parameter expressions
 Expressions such as `Ir0.center + 1.1`, `O_lat.fwhm`, `max(A.center, 3) - sqrt(4)` are parsed into a

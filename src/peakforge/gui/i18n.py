@@ -14,10 +14,19 @@ T = {
     "import": ("导入数据…", "Import data…"), "recent": ("最近的工程", "Recent projects"),
     "quit": ("退出", "Quit"), "auto_charge": ("自动荷电校准 (C 1s)", "Auto charge correction (C 1s)"),
     "charge_failed": ("未自动校准（请手动设置位移）", "Not corrected automatically (set the shift by hand)"),
+    "charge_check_failed": ("一致性检查未通过", "Consistency check failed"),
+    "charge_reference": ("荷电校准参考…", "Charge reference…"),
+    "charge_ref_region": ("参考谱区（取其中最低 BE 的明显峰，如 C 1s 的 C–C、Au 4f7/2、晶格 O 1s）",
+                          "Reference region (its lowest-BE prominent peak is used, e.g. C–C in C 1s, Au 4f7/2, lattice O 1s)"),
+    "charge_ref_be": ("参考结合能 (eV)", "Reference binding energy (eV)"),
     "set_shift": ("手动设置荷电位移…", "Set charge shift…"), "fit": ("拟合", "Fit"),
     "fit_all": ("拟合全部", "Fit all"), "batch": ("批量应用当前模型…", "Apply model to others…"),
     "diagnose": ("拟合诊断", "Diagnostics"), "quant": ("元素定量", "Quantification"),
-    "export_all": ("导出…", "Export…"), "language": ("语言", "Language"), "theme": ("图形主题", "Figure theme"),
+    "export_all": ("导出…", "Export…"), "export_this": ("导出此图…", "Export this figure…"),
+    "export_current": ("导出当前图…", "Export current figure…"),
+    "export_one_filter": ("PNG (*.png);;SVG (*.svg);;PDF (*.pdf);;TIFF (*.tif);;Origin (*.opju)",
+                          "PNG (*.png);;SVG (*.svg);;PDF (*.pdf);;TIFF (*.tif);;Origin (*.opju)"),
+    "no_fit_to_export": ("这张谱还没有拟合结果，先拟合再导出。", "This spectrum has no fit yet — fit it first."), "language": ("语言", "Language"), "theme": ("图形主题", "Figure theme"),
     "agent_connect": ("连接 AI Agent（MCP）…", "Connect AI agent (MCP)…"),
     "agent_md": ("写入 AGENTS.md", "Write AGENTS.md"), "about": ("关于", "About"),
     "save_preset": ("保存为预设…", "Save as preset…"), "undo": ("撤销", "Undo"), "redo": ("重做", "Redo"),
@@ -50,6 +59,7 @@ T = {
     "fit_failed": ("拟合失败", "Fit failed"),
     "shift": ("荷电位移", "Charge shift"), "fitting": ("拟合中…", "Fitting…"), "done": ("完成", "Done"),
     "rms": ("残差 RMS", "Residual RMS"), "warnings": ("警告", "Warnings"),
+    "quality_flags": ("拟合质量问题", "Fit-quality flags"),
     "export_title": ("导出", "Export"), "formats": ("格式", "Formats"), "out_dir": ("输出目录", "Output folder"),
     "choose": ("选择…", "Choose…"), "ok": ("确定", "OK"), "cancel": ("取消", "Cancel"),
     "batch_title": ("批量应用模型", "Apply model to other spectra"), "fix_params": ("固定参数", "Fix parameters"),
@@ -63,6 +73,13 @@ T = {
     "set_bg_lo": ("背景低端设为 {x:.2f} eV", "Set background low end to {x:.2f} eV"),
     "set_bg_hi": ("背景高端设为 {x:.2f} eV", "Set background high end to {x:.2f} eV"),
     "remove_comp": ("删除组分 {n}", "Remove component {n}"),
+    "color_this": ("颜色…", "Colours…"), "figure_colors": ("图形颜色", "Figure colours"),
+    "color_auto": ("自动", "Auto"), "color_mode": ("组分配色方式", "Component colours"),
+    "mode_series": ("组合序列（相邻组分对比）", "Series (neighbours contrast)"),
+    "mode_gradient": ("单色渐变（深到浅）", "Single-colour gradient (dark to light)"),
+    "color_base": ("基色", "Base colour"), "color_reset": ("恢复自动", "Reset to automatic"),
+    "color_preview": ("预览", "Preview"), "view_palette": ("配色方案（应用到所有图）", "Colour scheme (all figures)"),
+    "export_project_colors": ("按工程配色（含每张图的单独设置）", "Use the project colours (incl. per-figure settings)"),
     "palette": ("配色", "Palette"), "palette_new": ("＋ 新建自定义配色…", "+ New custom palette…"),
     "fill_alpha": ("填充不透明度", "Fill opacity"), "inspector": ("分峰模型", "Peak model"),
     "samples": ("样品与谱区", "Samples & regions"), "view_reset": ("复位视图", "Reset view"),
@@ -111,6 +128,15 @@ T = {
     "wiz_name": ("模板名", "Template name"), "wiz_name_ph": ("如 MyLab-CSV", "e.g. MyLab-CSV"),
     "wiz_need_name": ("请填写模板名", "Enter a template name"),
     "template": ("列映射模板", "Column template"), "auto_detect": ("自动识别", "Auto-detect"),
+    "check_update": ("检查更新…", "Check for updates…"),
+    "update_none": ("已是最新版本（{v}）。", "You are up to date ({v})."),
+    "update_new": ("有新版本 {latest}（当前 {cur}）。\n\n{how}", "Version {latest} is available (you have {cur}).\n\n{how}"),
+    "update_how_frozen": ("请到下面的页面下载新的安装程序并运行（覆盖安装，工程文件不受影响）：\n{page}",
+                          "Download the new installer from this page and run it (it installs over the old one; projects are not touched):\n{page}"),
+    "update_how_pip": ("可用 pip 从 GitHub 更新：pip install --upgrade https://github.com/Wiolic/PeakForge/archive/refs/heads/main.zip",
+                       "Update with pip: pip install --upgrade https://github.com/Wiolic/PeakForge/archive/refs/heads/main.zip"),
+    "update_how_dev": ("开发安装：在源码目录运行 git pull。", "Development install: run git pull in the source folder."),
+    "update_fail": ("无法连接 GitHub（或还没有发布版本）。", "Could not reach GitHub (or there is no release yet)."),
     "diag_zip": ("导出诊断包…", "Export diagnostics bundle…"),
     "diag_done": ("诊断包已保存（日志、版本、工程与模型 JSON，不含原始数据）：",
                   "Diagnostics bundle saved (log, versions, project and model JSON — no raw data):"),
@@ -174,3 +200,64 @@ def tr(key: str, /, **kw) -> str:
         return key
     s = v[0] if lang() == "zh" else v[1]
     return s.format(**kw) if kw else s
+
+
+# Chinese templates of back-end messages (peakforge.msg.Msg codes, core.quality flag codes); the English
+# text comes with the message itself. Placeholders = the message's pre-formatted args.
+MSG_ZH = {
+    # core.quality flags
+    "low_snr": "信噪比低（{snr}）：在这个噪声水平下 χ²ᵣ ≈ 1 不能说明模型正确；组分要少、共用宽度，化学上能固定的就固定",
+    "noise_dominated": "残差 RMS 为峰高的 {rms} %，而 χ²ᵣ = {chi2}：数据无法区分不同模型——组分位置和占比都不确定",
+    "narrow": "{c}：FWHM {w} eV 已到分辨率/采样下限（{floor} eV）——很可能在拟合噪声，不是峰",
+    "outside": "{c}：峰位 {x} eV 在拟合窗口 {lo}–{hi} eV 之外",
+    "insignificant": "{c}：面积 {a} 不显著（< 2σ）——数据不支持这个组分",
+    "broad": "{c}：宽 {w} eV、占面积 {f} %——可能在吸收背景、能量损失峰或非对称线型的拖尾（金属和导电氧化物需要非对称线型）",
+    "bound": "参数撞到上下限（数据要求超出允许范围——检查上下限或模型）：{hits}",
+    "noise_ratio": "数据噪声是按采集时间预期的计数统计方差的 {r} 倍——χ²ᵣ 和权重不可靠",
+    "overlap": "{level}（表值 ≈ {be} eV；谱线在 {lines} eV 附近，化合物中可高至 +{shift} eV）可能落在此窗口内——请加入模型或确认可忽略",
+    # charge reference (core.quant.find_reference, Project.auto_charge)
+    "ref_no_cover": "谱的范围没有覆盖 {lo}–{hi} eV",
+    "ref_no_peak": "{lo}–{hi} eV 内没有明显的峰——请手动设置位移",
+    "ref_few_points": "{x} eV 附近数据点太少——请手动设置位移",
+    "ref_large_shift": "位移 {shift} eV 偏大（荷电，或选到了别的谱线）——请手动检查",
+    "ref_weak": "峰太弱（S/N {snr}）",
+    "ref_broad": "峰太宽（FWHM 参数 {w} eV：多个化学态或差分荷电）",
+    "ref_moved": "拟合位置离极大值 {d} eV",
+    "ref_shoulder": "低 BE 一侧 {x} eV 附近有肩峰（参考化学态可能是这个肩峰）",
+    "ref_fluoro": "{x} eV 处有类似含氟聚合物的峰（距 C–C +{d} eV，如 Nafion 的 CF₂）：绝缘相可能有差分荷电——请先用内部参考（晶格 O 1s、金属谱线）核对位移",
+    "charge_not_applied": "{region} {x} eV → 建议位移 {shift} eV，未套用：{reasons}",
+    "charge_f1s": "样品中有 F 1s（校正后 {x} eV，{region}）：若为含氟聚合物（如 Nafion），绝缘相的荷电可能与活性物质不同——请先用内部参考核对位移",
+    "charge_check_error": "{region}：{err}",
+    "charge_check_off": "{region} 最低 BE 的峰校正后在 {x} eV，应为 {be} ± {tol} eV",
+}
+
+
+def _tr_arg(v):
+    if isinstance(v, (list, tuple)):
+        return "；".join(_tr_arg(x) for x in v)
+    return tr_msg(v) if isinstance(v, str) else v
+
+
+def tr_msg(m: str) -> str:
+    """A back-end message (peakforge.msg.Msg) in the UI language; plain strings are returned unchanged."""
+    code = getattr(m, "code", None)
+    if lang() != "zh" or code not in MSG_ZH:
+        return str(m)
+    try:
+        return MSG_ZH[code].format(**{k: _tr_arg(v) for k, v in m.args.items()})
+    except (KeyError, IndexError, ValueError):
+        from ..logs import log
+        log.warning("i18n: message %s could not be formatted", code, exc_info=True)
+        return str(m)
+
+
+def flag_text(f: dict) -> str:
+    """Text of a fit-quality flag (core.quality) in the UI language."""
+    if lang() != "zh" or f.get("code") not in MSG_ZH or "args" not in f:
+        return f.get("text", "")
+    try:
+        return MSG_ZH[f["code"]].format(**f["args"])
+    except (KeyError, IndexError, ValueError):
+        from ..logs import log
+        log.warning("i18n: flag %s could not be formatted", f.get("code"), exc_info=True)
+        return f.get("text", "")

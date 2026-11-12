@@ -28,9 +28,9 @@
 | | PeakForge | 以 Avantage 为代表的常规流程 |
 |---|---|---|
 | **费用与许可** | 免费、开源（MIT），任何 Windows 电脑都能装 | 商业软件，通常需要许可，常常只装在仪器电脑上 |
-| **数据格式** | PHI `.spe`、VAMAS `.vms`、CSV/TXT、Excel 一处打开；同一测量的 `.spe` 与 `.vms` 读出完全一致 | 各厂商软件主要面向自家格式，跨仪器、跨测试中心的数据需要转格式 |
+| **数据格式** | PHI `.spe`、VAMAS `.vms`、Thermo Avantage `.vgp`/`.VGD`、CSV/TXT、Excel 一处打开；同一测量的 `.spe` 与 `.vms` 读出完全一致 | 各厂商软件主要面向自家格式，跨仪器、跨测试中心的数据需要转格式 |
 | **出图** | **一键生成 Origin 工程 `.opju`** 和带 (a)(b)(c)(d) 编号的组合图：每个谱区一张排好版的图（数据点、背景、包络、各组分填充、图例、谱区与样品标注），可继续在 Origin 里修改 | 导出数据后在 Origin 里手动重建每张图 |
-| **配色** | 24 套成体系的配色（单色渐变 / 多色对比 / 柔和期刊 / 色盲友好），图、Origin、导出图片统一 | 逐条手动设置 |
+| **配色** | 每张图选一个基色，组分颜色自动生成；8 套“配色组合”给整套图分配基色（同一元素同色），图、Origin、导出图片统一 | 逐条手动设置 |
 | **批量** | 一个样品调好的模型一键套用到全部样品（可固定峰宽和线形），自动生成堆叠对比图 | 通常逐个样品重复操作 |
 | **元素覆盖** | 内置 Li–U 全部 90 种元素、169 个能级的峰位与自旋轨道分裂；任何元素都能“自动找峰”起步 | 视软件与版本而定 |
 | **拟合可信度** | 内置诊断：参数是否顶到边界、参数强相关、**去掉每个组分后的 ΔBIC（这个组分数据到底支不支持）**、多起点稳定性 | 视软件与版本而定，通常需要用户自行判断 |
@@ -56,7 +56,7 @@ PeakForge 直接生成的组合图（`figures/combined.png`）。示例为真实
 
 ## 功能一览
 
-- **读取**：PHI MultiPak/SmartSoft `.spe`、VAMAS `.vms`（ISO 14976）、CSV/TXT、Excel；识别 `Fe2p3`、`Fe 2p3/2`、`Pt4f7` 等各种谱区写法。
+- **读取**：PHI MultiPak/SmartSoft `.spe`、VAMAS `.vms`（ISO 14976）、Thermo Avantage 实验 `.vgp`（连同同名 `.DATA` 文件夹）或单个 `.VGD`、CSV/TXT、Excel；识别 `Fe2p3`、`Fe 2p3/2`、`Pt4f7` 等各种谱区写法。
 - **荷电校准**：C 1s 的 C–C 自动定到 284.8 eV（可改），或手动输入。
 - **背景**：Shirley、Smart、线性、Tougaard；端点可在图上拖动，自动避开邻峰拖尾。
 - **线形**：高斯、洛伦兹、伪 Voigt、GL/SGL（CasaXPS 记法）、Voigt、Doniach–Šunjić（金属不对称峰）、LA 不对称线形。
@@ -72,7 +72,11 @@ PeakForge 直接生成的组合图（`figures/combined.png`）。示例为真实
 
 **完全不会编程？请看 [Quickstart（快速上手）](QUICKSTART.md)**：安装、只用鼠标的 10 步流程、以及把分析交给 AI 的做法，全程不需要命令行。
 
-概括：
+**Windows 安装包（无需 Python）**：到 [Releases 页面](https://github.com/Wiolic/PeakForge/releases/latest) 下载 `PeakForge-<版本>-Setup.exe`（或便携 zip），
+装到当前用户目录，不需要管理员权限。安装包没有代码签名：Windows SmartScreen 若提示“已保护你的电脑”，点 *更多信息 → 仍要运行*；
+部分杀毒软件会误报未签名的 PyInstaller 程序，可用 Release 页的 `SHA256SUMS.txt` 核对文件。打包版尚未在干净电脑上验收（见 `packaging/ACCEPTANCE.md`）。
+
+或从源码安装：
 1. 安装 Python 3.12（勾选 *Add python.exe to PATH*）→ 下载本仓库 ZIP → 双击 `installer.py` → 桌面出现 PeakForge。
 2. **鼠标路线**：新建工程 → 导入数据 → 自动荷电校准 → 选预设或“通用：自动找峰” → 拟合 → 拟合诊断 → 导出 Origin。
 3. **AI 路线**：PeakForge 里点 **Agent → 一键连接 AI 到这个文件夹** → 在 Claude 桌面版 Code 标签打开该文件夹 → 用中文描述任务。
@@ -99,10 +103,11 @@ PeakForge 直接生成的组合图（`figures/combined.png`）。示例为真实
 
 ## 配色
 
-24 套配色以自然景观命名，分 6 个色族，每个色族 4 套；每套标注类型（单色渐变适合同一元素的价态系列，多色对比适合互不相关的组分，柔和期刊适合打印，色盲友好基于 Okabe–Ito）。也可以从任意一套出发调色，保存为自己的配色。
+每张图选**一个基色**（18 个均匀色相 + 石墨 + 板岩），该图各组分的颜色由它在 OKLCH 色彩空间里自动生成：色相固定（组分多时 ±15°），明度分级，相邻组分明暗交错以保证对比；也可切换为“单色渐变”。
 
-| 色族 | 配色 |
-|---|---|
+“配色组合”（冰川 Glacier · 峡湾 Fjord · 雨林 Rainforest · 沙漠 Desert · 峡谷 Canyon · 暮色 Dusk · 极光 Aurora · 草甸 Meadow）是为一整套图配好的一组基色：每种元素依次分到一个基色，同一元素在所有样品里同色，C 1s / O 1s 固定为中性色。右键图 → “颜色…” 可单独改一张图。旧版（≤ 0.2）的 24 个主题 id 打开时自动对应到最接近的组合；自定义配色（`~/.peakforge/themes/*.json`）仍可用。
+
+---|---|
 | 水域 Waters | 冰川 Glacier（默认）· 峡湾 Fjord · 泻湖 Lagoon · 深海 Abyss |
 | 森林 Forests | 苔原 Moss · 松林 Pinewood · 竹林 Bamboo · 雨林 Rainforest |
 | 大地 Earth | 沙漠 Desert · 峡谷 Canyon · 黄土 Loess · 恶地 Badlands |
@@ -135,6 +140,7 @@ peakforge add D:/xps/proj data/*.spe
 peakforge charge D:/xps/proj
 peakforge fit D:/xps/proj --region "Ir 4f" --deep
 peakforge export D:/xps/proj --formats png xlsx origin --theme fjord
+peakforge export D:/xps/proj --key "样品/Ir 4f" --out fig.svg      # 单张图
 peakforge add D:/xps/proj lab.csv --template mylab   # 用工程中保存的列映射模板
 peakforge validate D:/xps/proj                 # 检查工程、模板、模型、预设
 peakforge diag D:/xps/proj                     # 诊断包（不含原始数据）
